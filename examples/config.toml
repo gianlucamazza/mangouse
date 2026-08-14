@@ -1,0 +1,9 @@
+# Copy to ~/.config/mangouse/config.toml if you want to override defaults.
+backend = "auto"
+# Seat grant: type/click/focus. Default false. Requires a human decision.
+allow_input = false
+
+[policy]
+deny_app_ids = []
+confine_groups = []
+confine_app_ids = []
