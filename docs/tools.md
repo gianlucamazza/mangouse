@@ -21,7 +21,7 @@ Global flags: `--json`, `--backend`, `--allow-input`, `--version`.
 
 Generic seat (Wayland, grim) plus the active backend’s checks.
 `backend` is a field (`"mango"` today), not a hardcoded assumption.
-`input_implemented` is `false` in v0.
+`input_implemented` is `true`. Mutate still needs a seat grant.
 
 ## desktop
 
@@ -36,11 +36,12 @@ JSON includes geometry and `scale`: `global = origin + pixel / scale`.
 `--fit PX` (default 1568) shrinks the long edge with `magick` if present and
 rewrites `scale`. `--fit 0` leaves the native capture.
 
-MCP extra exposes only `doctor`, `desktop`, `shot`. Mutate stubs stay CLI-only.
+MCP extra exposes only `doctor`, `desktop`, `shot`. Mutate is CLI-only.
 
-## Stubs
+## Seat grant
 
-Without `--allow-input` / `MANGOUSE_ALLOW_INPUT=1`: `readonly`, exit 2.
+Without `--allow-input`, `MANGOUSE_ALLOW_INPUT=1`, or `allow_input = true` in
+config: `readonly`, exit 2.
 `--then desktop|shot` attaches a fresh observation after a mutate.
 `key` refuses Super/logo (`bad_key`). Keyboard is `wtype`; pointer is `ydotool`.
 Focus is `mmsg dispatch focusid client,<id>` on the mango backend.

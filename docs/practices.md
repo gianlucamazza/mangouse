@@ -6,7 +6,7 @@ Background: coding-agent seat adapter, not a browser, not an app catalog.
 ## Contract
 
 - **CLI + skill is the primary host.** `--json` is the law (`docs/headless.md`).
-  MCP is optional and observe-only in v0. Do not register it by default.
+  MCP is optional and observe-only. `install.sh` does not register it.
 - Every JSON envelope includes `"schema": 1`. Bump only with a documented change.
 - Agents branch on `error` codes, not on `message`.
 - `ok` is envelope health. `doctor.ready` is session health. Do not collapse them.
@@ -31,14 +31,14 @@ Background: coding-agent seat adapter, not a browser, not an app catalog.
 ## Safety
 
 - Readonly default. Mutate requires `--allow-input`. MCP stays observe-only.
-- Observe and act stay separate tools. MCP must not expose mutate stubs.
+- Observe and act stay separate tools. MCP must not expose mutate commands.
 - stdio only. No listen socket, no telemetry, no clipboard (v2 opt-in).
 - Shots land in `$XDG_RUNTIME_DIR/mangouse/` (0700).
 - Panic: `pkill -f mangouse`. Compositor binds live in dotfiles, not here.
-- v1 input: compositor protocols first (`wtype`, virtual pointer). No
-  RemoteDesktop portal on wlr. No `key super+…` — use `dispatch`.
-- v1 refuse input when the session is locked if the backend can tell.
-- OCR is not a targeting mechanism. Zoom (v1) is.
+- Input: `wtype` (keyboard), `ydotool` (pointer). No RemoteDesktop portal.
+  No `key super+…` — use `dispatch`.
+- Refuse input when a lock client is running.
+- OCR is not a targeting mechanism. Use `zoom`.
 
 ## Tests
 

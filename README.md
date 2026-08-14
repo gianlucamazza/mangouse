@@ -81,4 +81,4 @@ See [CHANGELOG.md](CHANGELOG.md). Current version: **0.2.0**.
 pkill -f mangouse
 ```
 
-Input is not live in v0, so this only stops a hung `shot` / MCP process.
+Stops a hung `shot` / input / MCP process.

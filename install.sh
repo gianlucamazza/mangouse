@@ -17,7 +17,8 @@ need() {
 need uv
 mkdir -p "$BIN" "$CFG_DIR"
 
-# uv caches wheels by version; --reinstall deploys this checkout even at 0.1.0.
+# uv caches wheels by version; --reinstall deploys this checkout even if
+# __version__ is unchanged.
 # [mcp] so mangouse-mcp can handshake; Grok registration is still a separate step.
 uv tool install --force --reinstall "${REPO}[mcp]"
 

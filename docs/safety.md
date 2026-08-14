@@ -1,15 +1,17 @@
 # Safety
 
-mangouse can see the screen. v1 will share the seat. Treat a session like
-screen sharing.
+mangouse can see the screen and, with a seat grant, share the seat.
+Treat an input-enabled session like screen sharing.
 
 ## What the core enforces
 
-- **Readonly default.** Mutating commands refuse with `readonly` unless
-  `--allow-input` or `MANGOUSE_ALLOW_INPUT=1`.
-- **Stubs in v0.** Even with the flag: `not_implemented`.
+- **Readonly default.** Mutate refuses with `readonly` unless `--allow-input`,
+  `MANGOUSE_ALLOW_INPUT=1`, or `allow_input = true` in config.
+- **Policy.** User `deny_app_ids` / `confine_*` → `denied`. Lock screen →
+  `input_blocked`. Super/logo key combos → `bad_key`.
 - **stdio only.** No listen socket, no telemetry.
 - **Shots** in `$XDG_RUNTIME_DIR/mangouse/` (tmpfs, 0700).
+- **MCP** is observe-only (`doctor`, `desktop`, `shot`).
 
 ## What the core does not enforce
 

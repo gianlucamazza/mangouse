@@ -1,4 +1,4 @@
-"""Optional stdio MCP server (extra `mangouse[mcp]`). Observe-only in v0."""
+"""Optional stdio MCP server (extra `mangouse[mcp]`). Observe-only."""
 
 from __future__ import annotations
 
