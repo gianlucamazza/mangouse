@@ -11,7 +11,7 @@ class MangouseError(Exception):
 
 
 class NoSession(MangouseError):
-    def __init__(self, message: str = "mango session not available") -> None:
+    def __init__(self, message: str = "no compositor session available") -> None:
         super().__init__("no_session", message)
 
 

@@ -17,24 +17,23 @@ REGISTRY: dict[str, type] = {
 def resolve_backend(
     name: str | None = None,
     *,
-    mango_runner=None,
+    runner=None,
 ) -> Backend:
     wanted = (name or os.environ.get("MANGOUSE_BACKEND") or load_config().backend or "auto").lower()
     if wanted != "auto":
         cls = REGISTRY.get(wanted)
         if cls is None:
             raise NoSession(f"unknown backend {wanted!r}; known: {', '.join(sorted(REGISTRY))}")
-        backend = _make(cls, mango_runner)
-        return backend
+        return _make(cls, runner)
 
     for cls in REGISTRY.values():
-        backend = _make(cls, mango_runner)
+        backend = _make(cls, runner)
         if backend.available():
             return backend
     raise NoSession("no supported compositor session (tried: " + ", ".join(REGISTRY) + ")")
 
 
-def _make(cls: type, mango_runner) -> Backend:
-    if cls is MangoBackend and mango_runner is not None:
-        return MangoBackend(runner=mango_runner)
+def _make(cls: type, runner) -> Backend:
+    if runner is not None:
+        return cls(runner=runner)
     return cls()

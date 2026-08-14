@@ -44,7 +44,7 @@ The Grok playbook is [`skills/mangouse/SKILL.md`](skills/mangouse/SKILL.md).
 
 ```bash
 uv run mangouse --json desktop
-uv run mangouse --json shot --monitor eDP-1
+uv run mangouse --json shot --output NAME
 ```
 
 Grok Build (this machine): skill is linked; MCP is `mangouse-mcp` in

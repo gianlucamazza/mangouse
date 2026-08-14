@@ -7,7 +7,6 @@ import subprocess
 
 from mangouse.errors import BadKey, InputBlocked, Readonly
 
-_LOCK_PROCS = ("hyprlock", "swaylock", "gtklock", "waylock", "mangolock")
 _COMPOSITOR_MODS = frozenset({"super", "logo", "win", "meta"})
 
 
@@ -32,7 +31,9 @@ def require_input(cli_flag: bool = False) -> None:
 
 
 def session_locked() -> bool:
-    for name in _LOCK_PROCS:
+    from mangouse.config import load_config
+
+    for name in load_config().lock_procs:
         try:
             proc = subprocess.run(
                 ["pgrep", "-x", name],

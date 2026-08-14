@@ -36,8 +36,12 @@ link_skill() {
 	echo "Linked skill → $dest/SKILL.md"
 }
 
-link_skill "${HOME}/.grok/skills/mangouse"
-link_skill "${HOME}/.agents/skills/mangouse"
+# Only attach to skill roots that already exist (do not invent host trees).
+for root in "${HOME}/.grok/skills" "${HOME}/.agents/skills"; do
+	if [[ -d "$root" ]]; then
+		link_skill "${root}/mangouse"
+	fi
+done
 
 command -v grim >/dev/null || echo "warn: grim missing — shot will fail"
 command -v mmsg >/dev/null || echo "warn: mmsg missing — mango backend will fail"

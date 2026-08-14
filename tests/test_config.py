@@ -33,6 +33,6 @@ def test_registry_has_mango_only() -> None:
 
 
 def test_resolve_forced_mango(backend) -> None:
-    got = resolve_backend("mango", mango_runner=backend._runner)
+    got = resolve_backend("mango", runner=backend._runner)
     assert got.name == "mango"
     assert got.version().startswith("0.")

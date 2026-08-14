@@ -7,6 +7,14 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+# Override via config `lock_procs`. Names are lock clients, not apps.
+DEFAULT_LOCK_PROCS: tuple[str, ...] = (
+    "swaylock",
+    "gtklock",
+    "waylock",
+    "hyprlock",
+)
+
 
 @dataclass(frozen=True)
 class Config:
@@ -15,6 +23,7 @@ class Config:
     deny_app_ids: tuple[str, ...] = ()
     confine_groups: tuple[int, ...] = ()
     confine_app_ids: tuple[str, ...] = ()
+    lock_procs: tuple[str, ...] = DEFAULT_LOCK_PROCS
 
 
 def config_path() -> Path:
@@ -42,10 +51,12 @@ def parse_config(data: dict[str, Any]) -> Config:
     confine = policy.get("confine_groups") or []
     confine_apps = policy.get("confine_app_ids") or []
     allow = data.get("allow_input", policy.get("allow_input", False))
+    locks = data.get("lock_procs", policy.get("lock_procs"))
     return Config(
         backend=backend,
         allow_input=bool(allow),
         deny_app_ids=tuple(str(x) for x in deny),
         confine_groups=tuple(int(x) for x in confine),
         confine_app_ids=tuple(str(x) for x in confine_apps),
+        lock_procs=tuple(str(x) for x in locks) if locks is not None else DEFAULT_LOCK_PROCS,
     )

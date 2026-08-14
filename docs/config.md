@@ -21,6 +21,7 @@ confine_app_ids = []
 | `policy.deny_app_ids` | `[]` | case-insensitive substrings matched against `app_id` and title |
 | `policy.confine_groups` | `[]` | if set, only windows on these group indexes |
 | `policy.confine_app_ids` | `[]` | if set, only matching `app_id` |
+| `lock_procs` | swaylock, gtklock, waylock, hyprlock | `pgrep -x` names treated as session lock |
 
 Environment overrides:
 

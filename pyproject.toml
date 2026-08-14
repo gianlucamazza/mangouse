@@ -6,7 +6,7 @@ requires-python = ">=3.13"
 license = "MIT"
 license-files = ["LICENSE"]
 authors = [{ name = "Gianluca Mazza", email = "info@gianlucamazza.it" }]
-keywords = ["mango", "wayland", "mcp", "computer-use", "grok"]
+keywords = ["wayland", "mcp", "computer-use", "seat"]
 classifiers = [
   "Environment :: Console",
   "Intended Audience :: Developers",

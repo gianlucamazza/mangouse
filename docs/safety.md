@@ -20,7 +20,7 @@ If you want to block targeting some `app_id` values, put them in config:
 
 ```toml
 [policy]
-deny_app_ids = ["keepassxc"]
+deny_app_ids = ["example-vault"]
 ```
 
 `policy.is_denied` uses only those tokens. Empty (the default) denies nothing.

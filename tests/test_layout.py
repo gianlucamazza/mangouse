@@ -49,11 +49,38 @@ def test_hosts_do_not_name_compositor_clis() -> None:
         assert "hyprctl" not in body
 
 
+# Product/app/host tokens that must not appear in shipped core/hosts.
+_BANNED = (
+    "foot",
+    "keepass",
+    "1password",
+    "onepassword",
+    "chromium",
+    "firefox",
+    "claude",
+    "codex",
+    "eDP",
+    "gianluca",
+    "hyprctl",
+    "hyprland",
+    "kitty",
+    "alacritty",
+    "polkit",
+)
+
+
 def test_core_modules_do_not_invoke_compositor_clis() -> None:
     for path in SRC.glob("*.py"):
         body = path.read_text()
         assert "mmsg" not in body, path.name
         assert "hyprctl" not in body, path.name
+
+
+def test_shipped_core_has_no_app_or_host_names() -> None:
+    for path in [*SRC.glob("*.py"), *HOSTS.glob("*.py")]:
+        body = path.read_text().lower()
+        for token in _BANNED:
+            assert token.lower() not in body, f"{path.relative_to(SRC.parent)} contains {token!r}"
 
 
 def test_shipped_cli_entry_readonly_envelope(capsys) -> None:
