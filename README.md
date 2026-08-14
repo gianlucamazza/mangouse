@@ -73,7 +73,7 @@ grok mcp add mangouse -- mangouse-mcp
 
 ## Changelog
 
-See [CHANGELOG.md](CHANGELOG.md). Current version: **0.2.0**.
+See [CHANGELOG.md](CHANGELOG.md). Current version: **0.2.1**.
 
 ## Panic
 

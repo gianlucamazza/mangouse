@@ -5,6 +5,13 @@ All notable changes to mangouse are documented here. Version source:
 
 Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [0.2.1] — 2026-08-14
+
+### Changed
+
+- Contract and skill name `desktop.cursor` (`x`, `y`, `output`). `click` /
+  `zoom` stay explicit coordinates; no second observe command.
+
 ## [0.2.0] — 2026-08-14
 
 First tagged release.

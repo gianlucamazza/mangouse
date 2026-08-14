@@ -11,6 +11,7 @@ Background: coding-agent seat adapter, not a browser, not an app catalog.
 - Agents branch on `error` codes, not on `message`.
 - `ok` is envelope health. `doctor.ready` is session health. Do not collapse them.
 - Prefer `desktop` over `shot`. Prefer one command over a poll loop.
+- Pointer position is `desktop.cursor`. Do not add a second observe command for it.
 - `shot` writes a file (JPEG q90). Hosts `Read` the path. No inline image bytes.
 - Long edge is capped (`--fit`, default 1568). Scale metadata is updated so
   `global = origin + pixel / scale` still holds.

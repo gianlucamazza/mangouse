@@ -43,6 +43,7 @@ Window: `id`, `pid`, `app_id`, `title`, `output`, `groups`, geometry,
 `focused`, `visible`, `extras`.
 Output: `name`, geometry, `scale`, `active`, `groups`, `active_groups`,
 `focused_window_id`, `extras`.
+Cursor: `x`, `y`, `output` (nullable). Null when the backend cannot report it.
 `extras` is backend-private and optional.
 
 ## Error codes
@@ -63,6 +64,8 @@ Output: `name`, geometry, `scale`, `active`, `groups`, `active_groups`,
 ## Rules
 
 - Do not invent window ids. Read them from `desktop`.
+- Read pointer position from `desktop.cursor`. `click` and `zoom` take
+  explicit global coordinates; they do not imply the current cursor.
 - Prefer `desktop` over `shot` to find windows.
 - After `shot`, read `shot.path`. No inline image bytes.
 - Coordinates are global logical pixels.

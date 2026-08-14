@@ -28,6 +28,13 @@ def test_cli_actions_are_documented() -> None:
         assert f"`{name}`" in headless, f"{name} missing from docs/headless.md"
 
 
+def test_skill_and_contract_name_cursor() -> None:
+    skill = (ROOT / "skills" / "mangouse" / "SKILL.md").read_text()
+    headless = (ROOT / "docs" / "headless.md").read_text()
+    assert "desktop.cursor" in skill
+    assert "Cursor:" in headless
+
+
 def test_example_config_keys_parse() -> None:
     import tomllib
 

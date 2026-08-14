@@ -12,6 +12,9 @@ def test_desktop_snapshot(backend: MangoBackend) -> None:
     assert desktop.focused is not None
     assert desktop.focused.app_id == "foot"
     assert desktop.cursor is not None
+    assert desktop.cursor.output == "eDP-1"
+    assert desktop.cursor.x == 264.33206182414278
+    assert desktop.cursor.y == 973.31438149406165
     assert {w.id for w in desktop.windows}
 
 
