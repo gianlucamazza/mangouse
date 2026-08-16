@@ -32,7 +32,8 @@ def run_doctor(backend: Backend | None = None, name: str | None = None) -> dict:
     grim = _which("grim")
     wtype = _which("wtype")
     ydotool = _which("ydotool")
-    bins = {"grim": grim, "wtype": wtype, "ydotool": ydotool}
+    wlpaste = _which("wl-paste")
+    bins = {"grim": grim, "wtype": wtype, "ydotool": ydotool, "wl-paste": wlpaste}
     checks.append(
         Check(id="bin_grim", ok=bool(grim), detail=grim or "grim not on PATH", blocker=True)
     )
@@ -55,6 +56,27 @@ def run_doctor(backend: Backend | None = None, name: str | None = None) -> dict:
             id="ydotool_socket",
             ok=ydo.exists(),
             detail=str(ydo) if ydo.exists() else f"{ydo} missing",
+            blocker=False,
+        )
+    )
+    checks.append(
+        Check(
+            id="bin_wl_paste",
+            ok=bool(wlpaste),
+            detail=wlpaste or "wl-paste not on PATH (clipboard)",
+            blocker=False,
+        )
+    )
+    from mangouse.devtools import probe as devtools_probe
+
+    dt = devtools_probe()
+    state = str(dt.get("state") or "unset")
+    detail = "unset" if state == "unset" else f"{state} via={dt.get('via')} pages={dt.get('pages')}"
+    checks.append(
+        Check(
+            id="devtools",
+            ok=state == "connected",
+            detail=detail,
             blocker=False,
         )
     )

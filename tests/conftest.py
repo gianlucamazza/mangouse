@@ -14,6 +14,7 @@ def isolated_config(tmp_path, monkeypatch):
     monkeypatch.setenv("MANGOUSE_CONFIG", str(tmp_path / "mangouse-test.toml"))
     monkeypatch.delenv("MANGOUSE_ALLOW_INPUT", raising=False)
 
+
 FIXTURES = Path(__file__).parent / "testdata" / "mango"
 
 

@@ -2,6 +2,10 @@
 backend = "auto"
 # Seat grant: type/click/focus. Default false. Requires a human decision.
 allow_input = false
+# Clipboard often holds secrets. Off until a human opts in.
+allow_clipboard = false
+# DevTools Protocol HTTP origin. Empty = discover DevToolsActivePort, else seat only.
+devtools_url = ""
 
 [policy]
 deny_app_ids = []

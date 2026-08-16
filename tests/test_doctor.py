@@ -12,3 +12,6 @@ def test_doctor_report_shape(backend: MangoBackend) -> None:
     assert "wayland" in ids
     assert "bin_grim" in ids
     assert "backend" in ids
+    assert "devtools" in ids
+    devtools = next(c for c in report["checks"] if c["id"] == "devtools")
+    assert "detail" in devtools

@@ -10,9 +10,7 @@ def main() -> int:
         from mcp.server.mcpserver import MCPServer
         from mcp.types import ToolAnnotations
     except ImportError:
-        sys.stderr.write(
-            "mangouse-mcp needs the optional extra: pip/uv install 'mangouse[mcp]'\n"
-        )
+        sys.stderr.write("mangouse-mcp needs the optional extra: pip/uv install 'mangouse[mcp]'\n")
         return 2
 
     from mangouse.contract import envelope
@@ -43,6 +41,13 @@ def main() -> int:
         """Capture the focused output, a named output, or a window id. Read-only."""
         result = capture(resolve_backend(), output=output, window_id=window, full=full)
         return envelope(ok=True, action="shot", data={"shot": to_dict(result)})
+
+    @server.tool(annotations=readonly)
+    def target() -> dict:
+        """Who receives keys vs who is under the pointer. Read-only."""
+        from mangouse.screen import target_snapshot
+
+        return envelope(ok=True, action="target", data=target_snapshot(resolve_backend()))
 
     server.run()
     return 0

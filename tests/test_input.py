@@ -94,9 +94,21 @@ def test_dispatch_passthrough() -> None:
 
 def test_click_moves_then_clicks() -> None:
     seen: list[list[str]] = []
-    click(10, 20, allow_input=True, backend=FakeBackend(), runner=seen.append)
+    out = click(10, 20, allow_input=True, backend=FakeBackend(), runner=seen.append)
     assert seen[0][1:3] == ["mousemove", "-a"]
     assert seen[1][1:] == ["click", "0xC0"]
+    assert out["via"] == "ydotool"
+
+
+def test_click_with_window_focuses_first() -> None:
+    """type/key already focus --window; click did not, so a webview never saw the seat."""
+    be = FakeBackend()
+    seen: list[list[str]] = []
+    out = click(10, 20, allow_input=True, window_id=7, backend=be, runner=seen.append)
+    assert be.calls == [("focus", 7)]
+    assert seen[0][1:3] == ["mousemove", "-a"]
+    assert out["window_id"] == 7
+    assert out["via"] == "ydotool"
 
 
 def test_denied_window() -> None:

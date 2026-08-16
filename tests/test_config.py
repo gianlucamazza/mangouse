@@ -9,6 +9,8 @@ def test_empty_config() -> None:
     assert cfg.backend == "auto"
     assert cfg.deny_app_ids == ()
     assert cfg.allow_input is False
+    assert cfg.allow_clipboard is False
+    assert cfg.devtools_url == ""
 
 
 def test_policy_from_toml_shape() -> None:

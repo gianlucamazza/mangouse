@@ -9,9 +9,11 @@ from collections.abc import Callable
 from typing import Any
 
 from mangouse.backend import Backend
+from mangouse.devtools import click_via_devtools
 from mangouse.errors import MissingDep
 from mangouse.policy import assert_target
 from mangouse.safety import refuse_compositor_combo, require_input
+from mangouse.screen import window_at
 from mangouse.session import resolve_backend
 
 Runner = Callable[[list[str]], str]
@@ -164,22 +166,45 @@ def click(
     *,
     button: str = "left",
     allow_input: bool = False,
+    window_id: int | None = None,
     backend: Backend | None = None,
     runner: Runner | None = None,
 ) -> dict[str, Any]:
-    require_input(allow_input)
-    be = backend or resolve_backend()
+    # Same focus path as type/key. A click that does not own the seat first is
+    # how a webview reports nothing while ydotool still exits 0.
+    be = _prepare(allow_input=allow_input, window_id=window_id, backend=backend)
     code = _CLICK_CODES.get(button)
     if not code:
         raise MissingDep(f"unknown button {button}")
-    for win in be.windows():
-        if not win.visible:
-            continue
-        if win.x <= x < win.x + win.width and win.y <= y < win.y + win.height:
-            assert_target(win)
+    target = window_at(be.windows(), x, y) or be.focusing()
+    if target is not None:
+        assert_target(target)
+        try:
+            if click_via_devtools(global_x=x, global_y=y, window=target, button=button):
+                out: dict[str, Any] = {
+                    "x": int(x),
+                    "y": int(y),
+                    "button": button,
+                    "backend": be.name,
+                    "via": "devtools",
+                }
+                if window_id is not None:
+                    out["window_id"] = window_id
+                return out
+        except OSError:
+            pass
     _ydotool(["mousemove", "-a", "-x", str(int(x)), "-y", str(int(y))], runner)
     _ydotool(["click", code], runner)
-    return {"x": int(x), "y": int(y), "button": button, "backend": be.name}
+    out = {
+        "x": int(x),
+        "y": int(y),
+        "button": button,
+        "backend": be.name,
+        "via": "ydotool",
+    }
+    if window_id is not None:
+        out["window_id"] = window_id
+    return out
 
 
 def focus(

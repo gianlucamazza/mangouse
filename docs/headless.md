@@ -26,12 +26,15 @@ Failure:
 | `doctor` | `ready`, `observe_ready`, `input_ready`, `input_implemented`, `backend`, `version`, `session`, `bins`, `checks`, `blockers` |
 | `desktop` | `desktop` (`backend`, `version`, `outputs`, `windows`, `focused`, `cursor`) |
 | `shot` | `shot` (`path`, `x`, `y`, `width`, `height`, `scale`, `output`, `window_id`) |
-| `zoom` | `shot` (crop around a global point) |
+| `zoom` | `shot` (crop around a global point; `shot.output` is the output that contains it) |
 | `focus` | `window_id`, `backend`; optional `desktop`/`shot` if `--then` |
 | `type` | `typed`, `backend` |
 | `key` | `combo`, `backend` |
-| `click` | `x`, `y`, `button`, `backend` |
+| `click` | `x`, `y`, `button`, `backend`, `via`; `window_id` when `--window` was set; `hit` when `--then shot` |
+| `devtools` | `url`, `pages`, `state` (`unset` · `listening` · `pending` · `connected`), `via` (`env` · `config` · `port-file` · `ws` · `http` · `hold`). `holder` is true when a local protocol holder owns the engine client. Envelope `ok` means the probe ran; branch on `state`. `--hold` keeps that client; `--stop` ends it. |
 | `dispatch` | `spec`, `result`, `backend` |
+| `target` | `keyboard`, `pointer`, `cursor` (windows under keys vs pointer) |
+| `clipboard` | `text`, `bytes`, `mime` (opt-in read) |
 
 `shot.width` / `height` / `scale` describe the **file on disk** after `--fit`
 (default long edge 1568). Mapping stays `global = origin + pixel / scale`.
@@ -66,6 +69,18 @@ Cursor: `x`, `y`, `output` (nullable). Null when the backend cannot report it.
 - Do not invent window ids. Read them from `desktop`.
 - Read pointer position from `desktop.cursor`. `click` and `zoom` take
   explicit global coordinates; they do not imply the current cursor.
+  `zoom` and region shots name the output that contains the crop.
+- `--then shot` after a mutate with `--window` captures that window. After
+  `click` without `--window` it captures the output under the click.
+- `click --then shot` adds `hit`: `changed`, `unchanged`, or `unknown`.
+  Envelope `ok` still means ydotool ran.
+- `target` is observe-only: compositor-focused window vs window under cursor.
+  It does not distinguish chrome from content inside a client.
+- `clipboard` reads `text/plain` only when `--allow-clipboard`,
+  `allow_clipboard`, or `MANGOUSE_ALLOW_CLIPBOARD` is set. It never writes.
+- `click` tries a configured DevTools endpoint first (`via: "devtools"`),
+  then seat evdev (`via: "ydotool"`). DevTools coordinates are CSS viewport
+  pixels. This is not a page/DOM agent.
 - Prefer `desktop` over `shot` to find windows.
 - After `shot`, read `shot.path`. No inline image bytes.
 - Coordinates are global logical pixels.

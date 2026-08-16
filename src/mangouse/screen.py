@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import os
 import shutil
 import subprocess
@@ -11,7 +12,7 @@ from pathlib import Path
 from mangouse.backend import Backend
 from mangouse.contract import DEFAULT_FIT
 from mangouse.errors import GrimFailed, MissingDep, UnknownWindow
-from mangouse.models import Shot
+from mangouse.models import Output, Shot, Window, to_dict
 
 
 def runtime_dir() -> Path:
@@ -23,6 +24,43 @@ def runtime_dir() -> Path:
 
 def grim_geometry(x: int, y: int, w: int, h: int) -> str:
     return f"{x},{y} {w}x{h}"
+
+
+def output_containing(outputs: list[Output], x: float, y: float) -> Output | None:
+    """The output whose box contains (x, y). Not the focused/active output."""
+    for item in outputs:
+        if item.x <= x < item.x + item.width and item.y <= y < item.y + item.height:
+            return item
+    return None
+
+
+def window_at(windows: list[Window], x: float, y: float) -> Window | None:
+    """Visible window under (x, y). Prefer focused, then last listed (typically top)."""
+    hits = [
+        win
+        for win in windows
+        if win.visible and win.x <= x < win.x + win.width and win.y <= y < win.y + win.height
+    ]
+    if not hits:
+        return None
+    focused = next((win for win in hits if win.focused), None)
+    return focused or hits[-1]
+
+
+def then_capture_kwargs(
+    *,
+    window_id: int | None,
+    at: tuple[float, float] | None,
+    outputs: list[Output],
+) -> dict[str, int | str]:
+    """Where `--then shot` should look. Window wins; else the output under `at`."""
+    if window_id is not None:
+        return {"window_id": window_id}
+    if at is not None:
+        found = output_containing(outputs, at[0], at[1])
+        if found:
+            return {"output": found.name}
+    return {}
 
 
 def fit_scale(width: int, height: int, long_edge: int) -> tuple[float, int, int]:
@@ -82,10 +120,14 @@ def capture(
     if region is not None:
         x, y, width, height = region
         args += ["-g", grim_geometry(x, y, width, height)]
-        focused = next((item for item in outputs if item.active), outputs[0] if outputs else None)
-        if focused:
-            out_name = focused.name
-            scale = focused.scale
+        # Label the output that contains the crop, not the focused/active one.
+        cx, cy = x + width / 2, y + height / 2
+        box = output_containing(outputs, cx, cy) or output_containing(outputs, x, y)
+        if box is None and outputs:
+            box = next((item for item in outputs if item.active), outputs[0])
+        if box is not None:
+            out_name = box.name
+            scale = box.scale
     elif window_id is not None:
         window = backend.window(window_id)
         wid = window.id
@@ -177,3 +219,44 @@ def zoom(
         width = height = size
     box = (rx, ry, max(1, width), max(1, height))
     return capture(backend, region=box, lossless=lossless, fit=fit)
+
+
+def region_digest(
+    backend: Backend,
+    x: float,
+    y: float,
+    *,
+    size: int = 48,
+) -> str | None:
+    """SHA-256 of a tiny crop around (x, y). None if grim cannot take it."""
+    try:
+        shot = zoom(backend, x, y, size=size, lossless=True, fit=0)
+    except (GrimFailed, MissingDep, UnknownWindow):
+        return None
+    path = Path(shot.path)
+    try:
+        digest = hashlib.sha256(path.read_bytes()).hexdigest()
+    except OSError:
+        return None
+    path.unlink(missing_ok=True)
+    return digest
+
+
+def classify_hit(before: str | None, after: str | None) -> str:
+    """changed | unchanged | unknown — ydotool ok is not a hit."""
+    if not before or not after:
+        return "unknown"
+    return "unchanged" if before == after else "changed"
+
+
+def target_snapshot(backend: Backend) -> dict:
+    """Who receives keys vs who sits under the pointer. No app names."""
+    desk = backend.desktop()
+    pointer = None
+    if desk.cursor is not None:
+        pointer = window_at(desk.windows, desk.cursor.x, desk.cursor.y)
+    return {
+        "keyboard": to_dict(desk.focused) if desk.focused else None,
+        "pointer": to_dict(pointer) if pointer else None,
+        "cursor": to_dict(desk.cursor) if desk.cursor else None,
+    }

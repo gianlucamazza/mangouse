@@ -56,11 +56,14 @@ browser profile, you add the `app_id` tokens.
 |---|---|
 | **v0** | `doctor`, `desktop`, `shot`. |
 | **v1** | `focus` / `type` / `key` / `click` / `dispatch` / `zoom` + policy + lock refuse. |
+| **v1.1** | `--then shot` follows window/point; `hit`; `target`; clipboard read opt-in. |
+| **v1.2** | Optional DevTools Protocol click (`via`); inspect discovery via `DevToolsActivePort`; `doctor` `state`/`via`. Not a browser/DOM agent. |
+| **v1.3** | One local protocol holder (`devtools --hold`) so inspect Allow is once per seat session. |
 | **v2** | More backends; optional AT-SPI as another observer, not an app list. |
 
 ## Non-goals
 
 - Bundling knowledge of specific applications.
-- Being a browser agent (separate MCP).
+- Being a browser agent (separate long-lived DevTools MCP).
 - Being a Grok-only tool (CLI + MCP + skill are hosts).
 - Reviving `hyprland_agent` or replacing `jarvis-shot`.

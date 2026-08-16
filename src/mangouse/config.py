@@ -20,6 +20,8 @@ DEFAULT_LOCK_PROCS: tuple[str, ...] = (
 class Config:
     backend: str = "auto"
     allow_input: bool = False
+    allow_clipboard: bool = False
+    devtools_url: str = ""
     deny_app_ids: tuple[str, ...] = ()
     confine_groups: tuple[int, ...] = ()
     confine_app_ids: tuple[str, ...] = ()
@@ -51,10 +53,14 @@ def parse_config(data: dict[str, Any]) -> Config:
     confine = policy.get("confine_groups") or []
     confine_apps = policy.get("confine_app_ids") or []
     allow = data.get("allow_input", policy.get("allow_input", False))
+    clip = data.get("allow_clipboard", policy.get("allow_clipboard", False))
+    devtools = str(data.get("devtools_url") or policy.get("devtools_url") or "")
     locks = data.get("lock_procs", policy.get("lock_procs"))
     return Config(
         backend=backend,
         allow_input=bool(allow),
+        allow_clipboard=bool(clip),
+        devtools_url=devtools.strip(),
         deny_app_ids=tuple(str(x) for x in deny),
         confine_groups=tuple(int(x) for x in confine),
         confine_app_ids=tuple(str(x) for x in confine_apps),

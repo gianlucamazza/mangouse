@@ -33,6 +33,10 @@ def test_skill_and_contract_name_cursor() -> None:
     headless = (ROOT / "docs" / "headless.md").read_text()
     assert "desktop.cursor" in skill
     assert "Cursor:" in headless
+    assert "click X Y --window ID --then shot" in skill
+    assert "ok` means ydotool ran" in skill or "ok` means ydotool" in skill
+    assert "hit" in skill
+    assert "target" in skill
 
 
 def test_example_config_keys_parse() -> None:

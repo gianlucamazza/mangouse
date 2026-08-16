@@ -16,7 +16,20 @@ from mangouse.models import to_dict
 from mangouse.session import resolve_backend
 
 
-def _attach_then(payload: dict[str, Any], args: argparse.Namespace) -> dict[str, Any]:
+def _then_window_id(args: argparse.Namespace) -> int | None:
+    if getattr(args, "window", None) is not None:
+        return int(args.window)
+    if getattr(args, "window_id", None) is not None:
+        return int(args.window_id)
+    return None
+
+
+def _attach_then(
+    payload: dict[str, Any],
+    args: argparse.Namespace,
+    *,
+    at: tuple[float, float] | None = None,
+) -> dict[str, Any]:
     then = getattr(args, "then", "none") or "none"
     if then == "none":
         return payload
@@ -24,10 +37,20 @@ def _attach_then(payload: dict[str, Any], args: argparse.Namespace) -> dict[str,
     if then == "desktop":
         payload["desktop"] = to_dict(backend.desktop())
     elif then == "shot":
-        from mangouse.screen import capture
+        from mangouse.screen import capture, then_capture_kwargs
 
+        kwargs = then_capture_kwargs(
+            window_id=_then_window_id(args),
+            at=at,
+            outputs=backend.outputs(),
+        )
         payload["shot"] = to_dict(
-            capture(backend, lossless=False, fit=getattr(args, "fit", DEFAULT_FIT))
+            capture(
+                backend,
+                lossless=False,
+                fit=getattr(args, "fit", DEFAULT_FIT),
+                **kwargs,
+            )
         )
     return payload
 
@@ -102,26 +125,43 @@ def cmd_focus(args: argparse.Namespace) -> int:
 
 
 def cmd_type(args: argparse.Namespace) -> int:
-    data = input_mod.type_text(
-        args.text, allow_input=args.allow_input, window_id=args.window
-    )
+    data = input_mod.type_text(args.text, allow_input=args.allow_input, window_id=args.window)
     payload = _attach_then(_envelope(ok=True, action="type", data=data), args)
     return _print(payload, as_json=args.json, human=f"typed {data['typed']} chars\n")
 
 
 def cmd_key(args: argparse.Namespace) -> int:
-    data = input_mod.press_key(
-        args.combo, allow_input=args.allow_input, window_id=args.window
-    )
+    data = input_mod.press_key(args.combo, allow_input=args.allow_input, window_id=args.window)
     payload = _attach_then(_envelope(ok=True, action="key", data=data), args)
     return _print(payload, as_json=args.json, human=f"key {args.combo}\n")
 
 
 def cmd_click(args: argparse.Namespace) -> int:
+    before: str | None = None
+    backend = None
+    if getattr(args, "then", "none") == "shot":
+        from mangouse.screen import region_digest
+
+        backend = resolve_backend(args.backend)
+        before = region_digest(backend, args.x, args.y)
     data = input_mod.click(
-        args.x, args.y, button=args.button, allow_input=args.allow_input
+        args.x,
+        args.y,
+        button=args.button,
+        allow_input=args.allow_input,
+        window_id=args.window,
+        backend=backend,
     )
-    payload = _attach_then(_envelope(ok=True, action="click", data=data), args)
+    payload = _attach_then(
+        _envelope(ok=True, action="click", data=data),
+        args,
+        at=(args.x, args.y),
+    )
+    if getattr(args, "then", "none") == "shot":
+        from mangouse.screen import classify_hit, region_digest
+
+        after = region_digest(resolve_backend(args.backend), args.x, args.y)
+        payload["hit"] = classify_hit(before, after)
     human = f"click {args.button} {int(args.x)},{int(args.y)}\n"
     return _print(payload, as_json=args.json, human=human)
 
@@ -147,6 +187,49 @@ def cmd_zoom(args: argparse.Namespace) -> int:
     return _print(payload, as_json=args.json, human=shot.path + "\n")
 
 
+def cmd_target(args: argparse.Namespace) -> int:
+    from mangouse.screen import target_snapshot
+
+    data = target_snapshot(resolve_backend(args.backend))
+    payload = _envelope(ok=True, action="target", data=data)
+    kb = (data.get("keyboard") or {}).get("id")
+    pt = (data.get("pointer") or {}).get("id")
+    return _print(payload, as_json=args.json, human=f"keyboard={kb} pointer={pt}\n")
+
+
+def cmd_clipboard(args: argparse.Namespace) -> int:
+    from mangouse.clipboard import read_clipboard
+
+    data = read_clipboard(allow=bool(getattr(args, "allow_clipboard", False)))
+    payload = _envelope(ok=True, action="clipboard", data=data)
+    return _print(payload, as_json=args.json, human=str(data.get("text") or ""))
+
+
+def cmd_devtools(args: argparse.Namespace) -> int:
+    from mangouse import devtools_hold
+    from mangouse.devtools import probe
+
+    if getattr(args, "stop", False):
+        stopped = devtools_hold.stop()
+        payload = _envelope(ok=True, action="devtools", data={"stopped": stopped, "holder": False})
+        return _print(payload, as_json=args.json, human="devtools holder stopped\n")
+    if getattr(args, "hold", False):
+        return devtools_hold.run_holder()
+
+    data = probe()
+    # probe.ok must not overwrite envelope ok (schema: command health ≠ endpoint).
+    payload = _envelope(
+        ok=True,
+        action="devtools",
+        data={k: v for k, v in data.items() if k != "ok"},
+    )
+    human = (
+        f"devtools state={data.get('state')} via={data.get('via')} "
+        f"pages={data.get('pages')} url={data.get('url')}\n"
+    )
+    return _print(payload, as_json=args.json, human=human)
+
+
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
         prog="mangouse",
@@ -162,6 +245,11 @@ def build_parser() -> argparse.ArgumentParser:
         "--allow-input",
         action="store_true",
         help="allow mutating commands (type/key/click/focus/dispatch)",
+    )
+    p.add_argument(
+        "--allow-clipboard",
+        action="store_true",
+        help="allow reading the seat clipboard (opt-in; often holds secrets)",
     )
     p.add_argument("--version", action="version", version=f"mangouse {__version__}")
     sub = p.add_subparsers(dest="cmd", required=True)
@@ -212,6 +300,7 @@ def build_parser() -> argparse.ArgumentParser:
     click.add_argument("x", type=float)
     click.add_argument("y", type=float)
     click.add_argument("--button", choices=("left", "right", "middle"), default="left")
+    click.add_argument("--window", type=int, help="focus this window first")
     click.add_argument("--then", **then)
     click.set_defaults(func=cmd_click)
 
@@ -227,6 +316,32 @@ def build_parser() -> argparse.ArgumentParser:
     zm.add_argument("--lossless", action="store_true")
     zm.add_argument("--fit", type=int, default=DEFAULT_FIT)
     zm.set_defaults(func=cmd_zoom)
+
+    sub.add_parser(
+        "target",
+        help="who receives keys vs who is under the pointer",
+    ).set_defaults(func=cmd_target)
+
+    sub.add_parser(
+        "clipboard",
+        help="read text/plain from the seat clipboard (requires --allow-clipboard)",
+    ).set_defaults(func=cmd_clipboard)
+
+    dt = sub.add_parser(
+        "devtools",
+        help="probe an optional DevTools Protocol endpoint (observe)",
+    )
+    dt.add_argument(
+        "--hold",
+        action="store_true",
+        help="keep one engine client (Allow once); CLI commands reuse it",
+    )
+    dt.add_argument(
+        "--stop",
+        action="store_true",
+        help="stop the local protocol holder",
+    )
+    dt.set_defaults(func=cmd_devtools)
     return p
 
 
@@ -238,13 +353,18 @@ def main(argv: list[str] | None = None) -> int:
         return args.func(args)
     except MangouseError as exc:
         payload = _envelope(ok=False, action=args.cmd, error=exc.code, message=exc.message)
-        rc = 2 if exc.code in {
-            "readonly",
-            "not_implemented",
-            "denied",
-            "input_blocked",
-            "bad_key",
-        } else 1
+        rc = (
+            2
+            if exc.code
+            in {
+                "readonly",
+                "not_implemented",
+                "denied",
+                "input_blocked",
+                "bad_key",
+            }
+            else 1
+        )
         if as_json:
             json.dump(payload, sys.stdout, indent=2)
             sys.stdout.write("\n")
