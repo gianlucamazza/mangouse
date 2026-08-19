@@ -10,12 +10,14 @@ description: >
 
 # mangouse
 
-Drive `mangouse` with **`--json`**. Contract: repo `docs/headless.md` (envelope,
-fields, error codes). This file is the playbook only.
+Drive `mangouse` with **`--json`**. This file is the playbook only; the
+contract (envelope, fields, error codes) is
+<https://github.com/gianlucamazza/mangouse/blob/main/docs/json-contract.md>.
 
 ## Before anything
 
-- `command -v mangouse` — if missing: `./install.sh` in the mangouse checkout.
+- `command -v mangouse` — if missing, mangouse is not installed. Say so; do
+  not try to install it.
 - `mangouse --json doctor`. Stop if `ready` is false; report `blockers`.
 - `ok` is envelope health. `doctor.ready` is session health. Branch on `error`,
   not on `message`. Require `"schema": 1`.

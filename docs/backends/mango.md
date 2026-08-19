@@ -1,7 +1,7 @@
 # Mango backend
 
-Core talks to a `Backend`. Mango lives in `mangouse.backends.mango` and is the
-only registry entry today.
+Core talks to a `Backend` ([how to write one](README.md)). Mango lives in
+`mangouse.backends.mango` and is the only registry entry today.
 
 Auto-detect (`backend = "auto"`): first adapter whose `available()` is true.
 Force with `--backend mango`, `MANGOUSE_BACKEND=mango`, or config.
@@ -35,4 +35,5 @@ The `mmsg` argv above is backend-private: no core or host module may name it
 only through `dispatch_action`, which never inspects the spec. There is no
 `mmsg watch` integration.
 
-Coordinates are global logical pixels (same space as grim `-g`).
+Coordinates are global logical pixels (same space as grim `-g`), which is
+what every host receives — see [the JSON contract](../json-contract.md).

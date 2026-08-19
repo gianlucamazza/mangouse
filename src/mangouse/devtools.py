@@ -172,7 +172,7 @@ def pick_page(pages: list[dict[str, Any]], title_hint: str | None) -> dict[str, 
         matched = [p for p in candidates if _hint_match(p, hint)]
         if matched:
             candidates = matched
-    candidates.sort(key=lambda p: (1 if p.get("attached") else 0), reverse=True)
+    candidates.sort(key=lambda p: 1 if p.get("attached") else 0, reverse=True)
     return candidates[0]
 
 

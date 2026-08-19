@@ -7,6 +7,10 @@ allow_clipboard = false
 # DevTools Protocol HTTP origin. Empty = discover DevToolsActivePort, else seat only.
 devtools_url = ""
 
+# Process names treated as a session lock: input refuses while one runs.
+# Default: swaylock, gtklock, waylock, hyprlock.
+# lock_procs = ["swaylock", "gtklock", "waylock", "hyprlock"]
+
 [policy]
 deny_app_ids = []
 confine_groups = []

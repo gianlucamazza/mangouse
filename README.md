@@ -1,90 +1,97 @@
 # mangouse
 
-Seat adapter for coding agents: observe and (with a seat grant) drive a
-Wayland desktop. MangoWM is the first compositor backend.
+[![CI](https://github.com/gianlucamazza/mangouse/actions/workflows/ci.yml/badge.svg)](https://github.com/gianlucamazza/mangouse/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Python 3.13+](https://img.shields.io/badge/python-3.13%2B-blue.svg)](pyproject.toml)
 
-The core is **not** an app catalog and **not** a Grok plugin. MangoWM is the
-first compositor backend (`mangouse.backends.mango`). Hosts (CLI, MCP, skills)
-sit above the same `--json` contract.
+**Coding agents have no native computer use on a Linux Wayland seat.** The
+servers that exist are bound to one compositor, one agent host, or a hardcoded
+list of applications. mangouse is a seat adapter instead: it answers _what is
+on this desktop_ as structured JSON, and — only with an explicit grant — types,
+clicks, and focuses on the same seat you are using.
 
-Not a browser agent. Not hypruse. Not a port of `hyprland_agent`.
+It observes by default. Mutation needs `--allow-input`. The optional MCP server
+is observe-only and cannot be talked into typing.
 
-## Status
+```console
+$ mangouse --json desktop | jq '.desktop.focused.app_id, .desktop.cursor'
+"org.example.Editor"
+{ "x": 1840, "y": 622, "output": "DP-2" }
+```
 
-v1. Observe always; mutate only with `--allow-input`. MCP stays observe-only.
+## Requirements
 
-## Install (local)
+- A Wayland session (`WAYLAND_DISPLAY` set) and a supported compositor
+- Python 3.13+
+- One backend's IPC binary — today [MangoWM](docs/backends/mango.md)'s `mmsg`
+
+| Binary     | Needed for          | Required                            |
+| ---------- | ------------------- | ----------------------------------- |
+| `grim`     | `shot`, `zoom`      | yes                                 |
+| `mmsg`     | the mango backend   | yes, for that backend               |
+| `wtype`    | `type`, `key`       | only with a seat grant              |
+| `ydotool`  | `click`             | only with a seat grant              |
+| `wl-paste` | `clipboard`         | only when clipboard read is enabled |
+| `magick`   | `--fit` downscaling | optional                            |
+
+`mangouse --json doctor` probes every one of them and names what is missing.
+The Python core itself has **zero** dependencies.
+
+## Install
 
 ```bash
-cd ~/Workspace/tooling/mangouse
-./install.sh
+uv tool install "mangouse[mcp] @ git+https://github.com/gianlucamazza/mangouse"
 mangouse --json doctor
 ```
 
-`install.sh` (idempotent, same pattern as nstream):
-
-- `uv tool install --force --reinstall .[mcp]` → `~/.local/bin/mangouse`
-  and `mangouse-mcp` (the `mcp` extra; the core itself has no dependencies)
-- creates `~/.config/mangouse/config.toml` only if missing
-- symlinks the skill into `~/.claude/skills`, `~/.grok/skills`, and
-  `~/.agents/skills` — only into roots that already exist
-- does **not** register MCP or edit `~/.grok/config.toml`
-
-Dev loop without installing:
+Drop `[mcp]` if you do not want the optional MCP server. To work on the code
+instead, clone it and use the repo's installer, which also links the agent
+skill into any skill root you already have:
 
 ```bash
-uv sync --group dev
-uv run mangouse --json doctor
+git clone https://github.com/gianlucamazza/mangouse
+cd mangouse
+./install.sh
 ```
 
-System binaries: `grim` (required for `shot`), `mmsg` (mango backend).
-Needed only for the opt-in paths: `wtype` (`type`/`key`), `ydotool`
-(`click`), `wl-paste` (`clipboard`). Optional: `magick` (`--fit`).
-`mangouse --json doctor` probes all of them.
+`install.sh` is idempotent. It runs `uv tool install --force --reinstall`,
+creates `~/.config/mangouse/config.toml` only if absent, and symlinks
+`skills/mangouse/SKILL.md` into `~/.claude/skills`, `~/.grok/skills`, and
+`~/.agents/skills` — only into roots that already exist. It never registers an
+MCP server for you and never edits an agent host's config.
 
-## Agent contract
+To remove it: `uv tool uninstall mangouse`, then delete
+`~/.config/mangouse/`, `$XDG_RUNTIME_DIR/mangouse/`, and the `mangouse` skill
+symlink from whichever skill roots you have.
 
-Always pass `--json`. The envelope and error codes live in [`docs/headless.md`](docs/headless.md).
-The Grok playbook is [`skills/mangouse/SKILL.md`](skills/mangouse/SKILL.md).
+## Quickstart
 
-```bash
-uv run mangouse --json desktop
-uv run mangouse --json shot --output NAME
-```
+[docs/quickstart.md](docs/quickstart.md) walks from `doctor` to your first
+screenshot, and lists what to do when `doctor` reports a blocker.
 
-Grok Build (this machine): skill is linked; MCP is `mangouse-mcp` in
-`~/.grok/config.toml`. Observe-only tools: `doctor`, `desktop`, `shot`,
-`target`. Permission allow is scoped to
-`mangouse --json doctor|desktop|shot|target` and
-`MCPTool(mangouse__*)`. Restart the TUI after a reinstall.
+## Safety
 
-To register MCP on another box (after `./install.sh`):
+mangouse can see every pixel on an output and, with a grant, share your
+keyboard and pointer. Treat an input-enabled session like screen sharing.
+Observation is the default; `--allow-input` is per-invocation; a running lock
+screen refuses input outright. The full model is in
+[docs/security-model.md](docs/security-model.md), and reporting is in
+[SECURITY.md](SECURITY.md).
 
-```bash
-grok mcp add mangouse -- mangouse-mcp
-```
+## Documentation
 
-## Docs
+| Doc                                      | For                                                    |
+| ---------------------------------------- | ------------------------------------------------------ |
+| [Quickstart](docs/quickstart.md)         | First run and troubleshooting                          |
+| [CLI reference](docs/cli-reference.md)   | Every command, flag, and the MCP surface               |
+| [JSON contract](docs/json-contract.md)   | Envelope, error codes, rules — authoritative for hosts |
+| [Configuration](docs/configuration.md)   | `config.toml` keys and environment variables           |
+| [Security model](docs/security-model.md) | What the core enforces, and what it does not           |
+| [Architecture](docs/architecture.md)     | Layers, glossary, non-goals                            |
+| [Backends](docs/backends/README.md)      | Writing an adapter for another compositor              |
+| [Contributing](CONTRIBUTING.md)          | Dev loop, tests, layout rules                          |
+| [Changelog](CHANGELOG.md)                | Version history                                        |
 
-| File | What |
-|------|------|
-| [docs/practices.md](docs/practices.md) | Normative best practices |
-| [docs/design.md](docs/design.md) | Layers, agnostic core, v0/v1 |
-| [docs/config.md](docs/config.md) | Optional backend + policy file |
-| [docs/README.md](docs/README.md) | Doc index |
-| [docs/backends/mango.md](docs/backends/mango.md) | Mango adapter mapping |
-| [docs/tools.md](docs/tools.md) | CLI / MCP surface |
-| [docs/headless.md](docs/headless.md) | `--json` contract |
-| [docs/safety.md](docs/safety.md) | Seat gates; user policy |
+## License
 
-## Changelog
-
-See [CHANGELOG.md](CHANGELOG.md). Current version: **0.7.0**.
-
-## Panic
-
-```bash
-pkill -f mangouse
-```
-
-Stops a hung `shot` / input / MCP process.
+MIT — see [LICENSE](LICENSE).

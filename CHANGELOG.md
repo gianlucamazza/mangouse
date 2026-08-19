@@ -5,6 +5,69 @@ All notable changes to mangouse are documented here. Version source:
 
 Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [0.8.0] — 2026-08-19
+
+Documentation reorganized for a public repository. No behaviour change; the
+minor bump signals that documentation paths moved, so anything linking to the
+old ones breaks.
+
+### Changed
+
+- **Every fact now has one home.** The same rule used to live in four to eight
+  files — the DevTools/holder explanation alone occupied ~90 lines across
+  seven — which is the mechanism behind the drift fixed in 0.6.0: when a fact
+  has six homes, five fall behind. Each duplicated fact was assigned a single
+  page and linked from the rest.
+- **`docs/practices.md` dissolved.** Three files claimed normative authority
+  over the same rules with no stated precedence. Its agent-behaviour rules
+  moved to `docs/json-contract.md` (now the only authority on the wire
+  format), its layout and test invariants to `CONTRIBUTING.md`, and its safety
+  doctrine to `docs/security-model.md`.
+- **Docs renamed** to names a stranger can navigate: `tools.md` →
+  `cli-reference.md`, `headless.md` → `json-contract.md`, `config.md` →
+  `configuration.md`, `design.md` → `architecture.md`, `safety.md` →
+  `security-model.md`, and `RELEASING.md` → `docs/releasing.md`.
+- **README rewritten** for readers who are not the author: the problem
+  statement first (it was buried in `design.md`), real requirements, an
+  install line that does not assume the author's directory layout, and
+  uninstall. Machine-specific setup notes were removed rather than moved.
+- `ruff format` applied and enforced; it is now the third CI check.
+
+### Added
+
+- `docs/quickstart.md` — `doctor` to first screenshot, plus the
+  blocker-to-fix table that previously existed only inside the agent playbook.
+- `docs/backends/README.md` — how to write an adapter for another compositor.
+- `CONTRIBUTING.md`, `SECURITY.md`, and a GitHub Actions workflow running
+  ruff, ruff format, and pytest on Python 3.13.
+- A glossary in `docs/architecture.md`: *seat grant*, *group*, *confine*,
+  *hit*, *via*, and *holder* were used throughout without ever being defined.
+- Three structural tests in `tests/test_docs_alignment.py`: every relative
+  markdown link resolves, no document outside the changelog hardcodes a
+  version, and every `MANGOUSE_*` variable the code reads appears in
+  `docs/configuration.md`. These check names, not truth — the existing tests
+  that compare docs against `build_parser()`, `errors.py`, and `run_doctor()`
+  remain the ones that check whether a claim is correct.
+
+### Fixed
+
+- `docs/design.md` claimed the shipped package was `0.5.0`, two releases after
+  that stopped being true. Documents no longer state a version at all; the new
+  test enforces it.
+- `docs/practices.md` still told readers to look for `doctor` `state=pending` —
+  the field that does not exist, already removed from `SKILL.md` in 0.6.0.
+- `SKILL.md` pointed at `docs/headless.md` as a relative path, but the file is
+  symlinked into skill roots where that path does not resolve. The one
+  cross-reference an agent needs was unreachable exactly where it is read; it
+  is now an absolute URL.
+- `MANGOUSE_DEVTOOLS_HOLD` was documented only in the skill and
+  `YDOTOOL_SOCKET` nowhere; both are now in the configuration reference.
+- `lock_procs` was documented but absent from `examples/config.toml`, so it
+  could not be discovered by copying the sample.
+- The generic CLI reference named `mmsg dispatch focusid client,<id>` — a
+  backend-private argv in a compositor-agnostic document, crossing the
+  boundary `tests/test_layout.py` enforces in code.
+
 ## [0.7.0] — 2026-08-19
 
 Hardening pass on the seat gates and the hand-rolled protocol layer. No new

@@ -1,8 +1,8 @@
-# Config
+# Configuration
 
 Optional. Path: `$MANGOUSE_CONFIG` or `~/.config/mangouse/config.toml`.
 Missing file = `backend = "auto"` and empty deny list.
-Example: `examples/config.toml`.
+The authoritative sample is [`examples/config.toml`](../examples/config.toml).
 
 ```toml
 backend = "auto"
@@ -26,7 +26,12 @@ confine_app_ids = []
 | `policy.deny_app_ids` | `[]` | case-insensitive substrings matched against `app_id` and title |
 | `policy.confine_groups` | `[]` | if set, only windows on these group indexes |
 | `policy.confine_app_ids` | `[]` | if set, only matching `app_id` |
-| `lock_procs` | swaylock, gtklock, waylock, hyprlock | `pgrep -x` names treated as session lock |
+| `lock_procs` | swaylock, gtklock, waylock, hyprlock | `pgrep -x` names treated as a session lock; input refuses while one runs |
+
+A bare string is accepted wherever a list is expected and treated as a single
+token: `deny_app_ids = "vault"` means one token, not eight one-letter
+substrings. Anything else of the wrong shape raises `bad_config` (exit 2) with
+the offending key named, rather than failing silently or crashing.
 
 Environment overrides:
 
@@ -38,3 +43,16 @@ Environment overrides:
 | `MANGOUSE_ALLOW_CLIPBOARD` | same as `--allow-clipboard` |
 | `MANGOUSE_DEVTOOLS_URL` | DevTools HTTP origin (wins over file) |
 | `MANGOUSE_DEVTOOLS_WS` | Browser WebSocket URL (wins over the port file) |
+| `MANGOUSE_DEVTOOLS_HOLD` | `0` disables auto-starting the protocol holder |
+
+Read but not owned by mangouse:
+
+| var | effect |
+|-----|--------|
+| `WAYLAND_DISPLAY` | Must be set; `doctor` blocks without it |
+| `XDG_RUNTIME_DIR` | Where shots and the holder socket land (mode `0700`) |
+| `XDG_CONFIG_HOME` | Searched for a browser `DevToolsActivePort` file |
+| `YDOTOOL_SOCKET` | Passed through to `ydotool`; defaults to `/run/user/$UID/.ydotool_socket` |
+
+Precedence everywhere is the same: command-line flag, then environment, then
+the config file, then the built-in default.

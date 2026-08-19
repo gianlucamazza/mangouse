@@ -37,7 +37,6 @@ class UnknownWindow(MangouseError):
         self.window_id = window_id
 
 
-
 class GrimFailed(MangouseError):
     def __init__(self, detail: str) -> None:
         super().__init__("grim_failed", detail)
