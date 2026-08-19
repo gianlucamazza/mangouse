@@ -5,6 +5,18 @@ All notable changes to mangouse are documented here. Version source:
 
 Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [0.8.1] — 2026-08-19
+
+### Fixed
+
+- **Five tests were not hermetic.** `test_input.py` and `test_clipboard.py`
+  inject a fake `runner`, but the code still calls `shutil.which` first, so
+  they only passed on a machine that already had `wtype`, `ydotool`, and
+  `wl-paste` installed. The docs claimed the suite needed no seat; the first
+  CI run on a bare runner proved otherwise. A `seat_bins` fixture now declares
+  those binaries present, and the suite passes with them hidden.
+- CI actions bumped past the Node 20 deprecation.
+
 ## [0.8.0] — 2026-08-19
 
 Documentation reorganized for a public repository. No behaviour change; the

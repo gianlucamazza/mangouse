@@ -58,7 +58,7 @@ def test_type_requires_allow() -> None:
     raise AssertionError("expected Readonly")
 
 
-def test_type_calls_wtype() -> None:
+def test_type_calls_wtype(seat_bins) -> None:
     seen: list[list[str]] = []
     type_text("hi", allow_input=True, backend=FakeBackend(), runner=seen.append)
     assert seen[0][-2:] == ["--", "hi"]
@@ -73,7 +73,7 @@ def test_key_refuses_super() -> None:
     raise AssertionError("expected BadKey")
 
 
-def test_key_ctrl_c_builds_wtype_args() -> None:
+def test_key_ctrl_c_builds_wtype_args(seat_bins) -> None:
     seen: list[list[str]] = []
     press_key("ctrl+c", allow_input=True, backend=FakeBackend(), runner=seen.append)
     assert "-M" in seen[0] and "ctrl" in seen[0]
@@ -92,7 +92,7 @@ def test_dispatch_passthrough() -> None:
     assert be.calls == [("dispatch", "focusid client,7")]
 
 
-def test_click_moves_then_clicks() -> None:
+def test_click_moves_then_clicks(seat_bins) -> None:
     seen: list[list[str]] = []
     out = click(10, 20, allow_input=True, backend=FakeBackend(), runner=seen.append)
     assert seen[0][1:3] == ["mousemove", "-a"]
@@ -100,7 +100,7 @@ def test_click_moves_then_clicks() -> None:
     assert out["via"] == "ydotool"
 
 
-def test_click_with_window_focuses_first() -> None:
+def test_click_with_window_focuses_first(seat_bins) -> None:
     """type/key already focus --window; click did not, so a webview never saw the seat."""
     be = FakeBackend()
     seen: list[list[str]] = []
@@ -129,7 +129,7 @@ def test_confine_rejects_other_group() -> None:
     raise AssertionError("expected Denied")
 
 
-def test_click_falls_back_to_seat_when_devtools_misbehaves(monkeypatch, backend) -> None:
+def test_click_falls_back_to_seat_when_devtools_misbehaves(monkeypatch, backend, seat_bins) -> None:
     """A malformed protocol reply must degrade to ydotool, not raise."""
     from mangouse import input as input_mod
 
@@ -138,7 +138,6 @@ def test_click_falls_back_to_seat_when_devtools_misbehaves(monkeypatch, backend)
 
     monkeypatch.setattr(input_mod, "click_via_devtools", boom)
     monkeypatch.setattr(input_mod, "require_input", lambda flag=False: None)
-    monkeypatch.setattr(input_mod.shutil, "which", lambda name: f"/usr/bin/{name}")
 
     ran: list[list[str]] = []
 

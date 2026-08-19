@@ -41,5 +41,23 @@ def fixture_runner(args: list[str]) -> str:
 
 
 @pytest.fixture
+def seat_bins(monkeypatch):
+    """Pretend the seat binaries are installed.
+
+    A test that injects a `runner` is asserting what the binary does, not
+    whether it is present. Without this the test only passes on a machine that
+    happens to have wtype/ydotool/wl-paste — which is how CI, on a bare
+    runner, caught five of them.
+    """
+    import shutil
+
+    real = shutil.which
+    seat = {"wtype", "ydotool", "wl-paste"}
+    monkeypatch.setattr(
+        shutil, "which", lambda name, *a, **kw: f"/usr/bin/{name}" if name in seat else real(name)
+    )
+
+
+@pytest.fixture
 def backend() -> MangoBackend:
     return MangoBackend(runner=fixture_runner)

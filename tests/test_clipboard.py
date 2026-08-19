@@ -13,7 +13,7 @@ def test_clipboard_denied_by_default() -> None:
     raise AssertionError("expected Denied")
 
 
-def test_clipboard_reads_via_runner() -> None:
+def test_clipboard_reads_via_runner(seat_bins) -> None:
     def runner(cmd: list[str]) -> bytes:
         assert cmd[-1] == "text"
         return b"hello"
