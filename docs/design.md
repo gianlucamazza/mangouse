@@ -16,13 +16,14 @@ hosts/cli.py  hosts/mcp.py  skills/     # how you talk to mangouse
         │
    contract.py  (--json, schema 1)
         │
-   core: models, policy, screen, safety, doctor, session
+   core: models, errors, config, policy, safety, doctor, session,
+         screen, input, clipboard, devtools, devtools_hold
         │
-   Backend protocol
+   backend.py  (Backend protocol)
         │
    backends/mango.py                  # first adapter
         │
-   compositor IPC + grim + (v1) input
+   compositor IPC + grim + wtype/ydotool + wl-paste + DevTools
 ```
 
 | Layer | Knows about | Must not know about |
@@ -41,11 +42,16 @@ opaque backend action string, not `mmsg` in the core.
 `~/.config/mangouse/config.toml` (or `MANGOUSE_CONFIG`):
 
 ```toml
-backend = "auto"   # or "mango"
+backend = "auto"        # or "mango"
+allow_input = false     # seat grant for type/click/focus
+allow_clipboard = false # clipboard read
+devtools_url = ""       # empty = discover DevToolsActivePort, else seat only
 
 [policy]
 deny_app_ids = []   # user-supplied substrings; empty = deny none
 ```
+
+`examples/config.toml` is the full key list; `docs/config.md` documents each.
 
 The library ships **no** deny list. If you want to protect a vault or a
 browser profile, you add the `app_id` tokens.
@@ -57,9 +63,12 @@ browser profile, you add the `app_id` tokens.
 | **v0** | `doctor`, `desktop`, `shot`. |
 | **v1** | `focus` / `type` / `key` / `click` / `dispatch` / `zoom` + policy + lock refuse. |
 | **v1.1** | `--then shot` follows window/point; `hit`; `target`; clipboard read opt-in. |
-| **v1.2** | Optional DevTools Protocol click (`via`); inspect discovery via `DevToolsActivePort`; `doctor` `state`/`via`. Not a browser/DOM agent. |
+| **v1.2** | Optional DevTools Protocol click (`via`); inspect discovery via `DevToolsActivePort`; `devtools` reports `state`/`via`. Not a browser/DOM agent. |
 | **v1.3** | One local protocol holder (`devtools --hold`) so inspect Allow is once per seat session. |
 | **v2** | More backends; optional AT-SPI as another observer, not an app list. |
+
+Milestones are scope, not release numbers. The shipped package is `0.5.0`
+(v1.3); `CHANGELOG.md` is the version history.
 
 ## Non-goals
 

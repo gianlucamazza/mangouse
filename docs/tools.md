@@ -6,18 +6,19 @@ CLI and MCP share the core. Neither names applications.
 |-----|-----|-----|
 | `mangouse doctor` | `doctor` | implemented |
 | `mangouse desktop` | `desktop` | implemented |
-| `mangouse shot [--output NAME] [--window ID] [--full]` | `shot` | implemented |
+| `mangouse shot [--output NAME] [--window ID] [--full] [--lossless] [--fit PX]` | `shot` | implemented |
 | `mangouse focus ID` | — | `--allow-input` |
 | `mangouse type TEXT` | — | `--allow-input` |
 | `mangouse key COMBO` | — | `--allow-input` |
-| `mangouse click X Y [--window ID]` | — | `--allow-input` |
+| `mangouse click X Y [--button left\|right\|middle] [--window ID]` | — | `--allow-input` |
 | `mangouse dispatch SPEC` | — | `--allow-input` |
-| `mangouse zoom X Y` | — | observe |
+| `mangouse zoom X Y [--size PX] [--lossless] [--fit PX]` | — | observe |
 | `mangouse target` | `target` | observe |
 | `mangouse clipboard` | — | `--allow-clipboard` |
-| `mangouse devtools` | — | observe |
+| `mangouse devtools [--hold] [--stop]` | — | observe |
 
-Global flags: `--json`, `--backend`, `--allow-input`, `--version`.
+Global flags: `--json`, `--backend`, `--allow-input`, `--allow-clipboard`,
+`--version`.
 `--monitor` is an alias of `--output`.
 
 ## doctor
@@ -39,7 +40,7 @@ JSON includes geometry and `scale`: `global = origin + pixel / scale`.
 `--fit PX` (default 1568) shrinks the long edge with `magick` if present and
 rewrites `scale`. `--fit 0` leaves the native capture.
 
-MCP extra exposes only `doctor`, `desktop`, `shot`. Mutate is CLI-only.
+MCP extra exposes only `doctor`, `desktop`, `shot`, `target`. Mutate is CLI-only.
 
 ## Seat grant
 
@@ -58,7 +59,10 @@ envelope): `devtools_url` / `MANGOUSE_DEVTOOLS_URL`, or a
 `DevToolsActivePort` file under `$XDG_CONFIG_HOME/*`. Seat evdev is the
 fallback. `mangouse devtools` / `doctor`'s `devtools` check report
 `state` and `via`. `pending` means the handshake timed out (the engine
-is waiting for an Allow on its chrome, not a page). Official page/DOM/AX
-automation is a separate, long-lived DevTools MCP — this CLI opens a new
-client per invocation and must not grow evaluate/fill.
+is waiting for an Allow on its chrome, not a page). The first `click` starts
+a local holder that keeps one engine client for the seat session
+(`via=hold`); `devtools --hold` runs it in the foreground and `devtools
+--stop` ends it, answering `stopped` and `holder: false`. Official
+page/DOM/AX automation is a separate, long-lived DevTools MCP — this CLI
+must not grow evaluate/fill.
 Focus is `mmsg dispatch focusid client,<id>` on the mango backend.

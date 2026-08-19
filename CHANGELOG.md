@@ -5,6 +5,43 @@ All notable changes to mangouse are documented here. Version source:
 
 Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [0.6.0] — 2026-08-19
+
+### Changed
+
+- Argument errors no longer masquerade as `missing_dep`. An empty or
+  unmappable key combo is `bad_key`; an unknown `--button` is the new
+  `bad_arg` code. Both exit 2, like the other caller-fault codes.
+- `click` resolves the backend once per invocation instead of up to three
+  times (each resolve re-read config and re-shelled the compositor IPC).
+- `Backend` protocol declares `cursor()`, which `Desktop` and `target`
+  already required from every adapter.
+
+### Fixed
+
+- Docs and skill described a smaller surface than the code: the MCP extra
+  exposes four observe-only tools (`target` was missing from `README.md`,
+  `docs/tools.md`, `docs/safety.md`); `--allow-clipboard`, `--button`,
+  `--size`, `--lossless`, `--fit`, `devtools --hold/--stop` were
+  undocumented; the error table lacked `not_implemented`; `docs/safety.md`
+  still claimed "no listen socket" after the 0.5.0 holder.
+- `SKILL.md` told agents to read `doctor` → `devtools.state` and
+  `doctor` `via=hold`. Neither field exists: `doctor` carries DevTools as a
+  `checks[]` row, and `state`/`via` belong to the `devtools` action.
+- `install.sh` links the skill into `~/.claude/skills` too, not only
+  `~/.grok/skills` and `~/.agents/skills`.
+- `docs/backends/mango.md` claimed `mmsg dispatch` was backend-private
+  (it is reachable through `mangouse dispatch`) and promised an `mmsg
+  watch` integration that does not exist.
+
+### Added
+
+- `tests/test_docs_alignment.py` pins the classes of drift above: every
+  parser flag appears in `docs/tools.md`, every error code in the
+  `docs/headless.md` table, the `@server.tool` set matches all three
+  documents that list it, and `run_doctor()`'s keys match the documented
+  `doctor` row.
+
 ## [0.5.0] — 2026-08-16
 
 ### Added

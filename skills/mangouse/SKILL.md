@@ -71,8 +71,9 @@ page is ignoring evdev. Two official protocol paths:
 1. **Daily profile (Chrome 144+).** `chrome://inspect/#remote-debugging`,
    checkbox on. The first client shows **Allow** (engine chrome — click
    Consenti / Allow with a seat `click`, once). A banner while attached is
-   expected. `mangouse --json doctor` `devtools.state` must be `connected`
-   (not `unset`, not `pending`). `pending` = Allow still up.
+   expected. `mangouse --json devtools` `state` must be `connected` (not
+   `unset`, not `pending`). `pending` = Allow still up. In `doctor` this is
+   only the `devtools` row of `checks[]` — `ok` true when connected.
 2. **Isolated profile.** Launch with a **non-default** `--user-data-dir`
    and `--remote-debugging-port=9222`. Chrome 136+ ignores that flag on
    the default profile. Do **not** add it to the daily flags file.
@@ -81,8 +82,8 @@ page is ignoring evdev. Two official protocol paths:
 inspect without HTTP `/json/list`). Clicks then use
 `Input.dispatchMouseEvent` (`via: "devtools"`). The first `click` starts
 a local **holder** (`$XDG_RUNTIME_DIR/mangouse/devtools.sock`) that keeps
-one engine client — Allow once per seat session, then `doctor`
-`via=hold`. `mangouse --json devtools --hold` runs it in the foreground;
+one engine client — Allow once per seat session, then `devtools`
+reports `via=hold`. `mangouse --json devtools --hold` runs it in the foreground;
 `--stop` ends it. `MANGOUSE_DEVTOOLS_HOLD=0` disables auto-start. For
 fill, AX, or snapshots, use the official DevTools MCP. This skill is
 not a DOM agent.

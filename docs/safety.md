@@ -9,9 +9,11 @@ Treat an input-enabled session like screen sharing.
   `MANGOUSE_ALLOW_INPUT=1`, or `allow_input = true` in config.
 - **Policy.** User `deny_app_ids` / `confine_*` → `denied`. Lock screen →
   `input_blocked`. Super/logo key combos → `bad_key`.
-- **stdio only.** No listen socket, no telemetry.
+- **stdio only.** No TCP listen, no telemetry. The optional DevTools
+  holder binds a user-only unix socket (0600) under
+  `$XDG_RUNTIME_DIR/mangouse/`; `devtools --stop` removes it.
 - **Shots** in `$XDG_RUNTIME_DIR/mangouse/` (tmpfs, 0700).
-- **MCP** is observe-only (`doctor`, `desktop`, `shot`).
+- **MCP** is observe-only (`doctor`, `desktop`, `shot`, `target`).
 
 ## What the core does not enforce
 

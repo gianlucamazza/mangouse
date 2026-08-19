@@ -37,9 +37,6 @@ class UnknownWindow(MangouseError):
         self.window_id = window_id
 
 
-# Back-compat alias
-UnknownClient = UnknownWindow
-
 
 class GrimFailed(MangouseError):
     def __init__(self, detail: str) -> None:
@@ -62,8 +59,15 @@ class InputBlocked(MangouseError):
 
 
 class BadKey(MangouseError):
-    def __init__(self, combo: str) -> None:
+    def __init__(self, combo: str, reason: str | None = None) -> None:
         super().__init__(
             "bad_key",
-            f"compositor binds must use dispatch, not key ({combo})",
+            reason or f"compositor binds must use dispatch, not key ({combo})",
         )
+
+
+class BadArg(MangouseError):
+    """Caller passed a value the seat cannot map. Not a missing dependency."""
+
+    def __init__(self, detail: str) -> None:
+        super().__init__("bad_arg", detail)

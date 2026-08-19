@@ -10,7 +10,7 @@ from typing import Any
 
 from mangouse.backend import Backend
 from mangouse.devtools import click_via_devtools
-from mangouse.errors import MissingDep
+from mangouse.errors import BadArg, BadKey, MissingDep
 from mangouse.policy import assert_target
 from mangouse.safety import refuse_compositor_combo, require_input
 from mangouse.screen import window_at
@@ -97,17 +97,17 @@ def _ydotool(args: list[str], runner: Runner | None) -> str:
 def _key_args(combo: str) -> list[str]:
     parts = [p.strip() for p in combo.split("+") if p.strip()]
     if not parts:
-        raise MissingDep("empty key combo")
+        raise BadKey(combo, "empty key combo")
     args: list[str] = []
     held: list[str] = []
     for part in parts[:-1]:
         mod = _MODIFIERS.get(part.lower())
         if not mod:
-            raise MissingDep(f"unknown modifier {part}")
+            raise BadKey(combo, f"unknown modifier {part}")
         args += ["-M", mod]
         held.append(mod)
     key = parts[-1]
-    named = _KEY_NAMES.get(key.lower(), key if len(key) > 1 else key)
+    named = _KEY_NAMES.get(key.lower(), key)
     args += ["-k", named]
     for mod in reversed(held):
         args += ["-m", mod]
@@ -175,7 +175,7 @@ def click(
     be = _prepare(allow_input=allow_input, window_id=window_id, backend=backend)
     code = _CLICK_CODES.get(button)
     if not code:
-        raise MissingDep(f"unknown button {button}")
+        raise BadArg(f"unknown button {button}")
     target = window_at(be.windows(), x, y) or be.focusing()
     if target is not None:
         assert_target(target)

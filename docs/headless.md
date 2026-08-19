@@ -31,7 +31,7 @@ Failure:
 | `type` | `typed`, `backend` |
 | `key` | `combo`, `backend` |
 | `click` | `x`, `y`, `button`, `backend`, `via`; `window_id` when `--window` was set; `hit` when `--then shot` |
-| `devtools` | `url`, `pages`, `state` (`unset` · `listening` · `pending` · `connected`), `via` (`env` · `config` · `port-file` · `ws` · `http` · `hold`). `holder` is true when a local protocol holder owns the engine client. Envelope `ok` means the probe ran; branch on `state`. `--hold` keeps that client; `--stop` ends it. |
+| `devtools` | `url`, `pages`, `state` (`unset` · `listening` · `pending` · `connected`), `via` (`env` · `config` · `port-file` · `ws` · `http` · `hold`). `holder` is true when a local protocol holder owns the engine client. Envelope `ok` means the probe ran; branch on `state`. `--hold` keeps that client; `--stop` ends it and answers `stopped` + `holder: false` instead of the probe keys. |
 | `dispatch` | `spec`, `result`, `backend` |
 | `target` | `keyboard`, `pointer`, `cursor` (windows under keys vs pointer) |
 | `clipboard` | `text`, `bytes`, `mime` (opt-in read) |
@@ -54,14 +54,16 @@ Cursor: `x`, `y`, `output` (nullable). Null when the backend cannot report it.
 | code | exit | when |
 |------|------|------|
 | `no_session` | 1 | no backend available |
-| `missing_dep` | 1 | required seat binary missing (`grim`) |
+| `missing_dep` | 1 | required seat binary missing or failing (`grim`, `wtype`, `ydotool`, `wl-paste`) |
 | `ipc_failed` | 1 | backend IPC failed |
 | `unknown_window` | 1 | `--window` id not found |
 | `grim_failed` | 1 | grim non-zero or unknown output |
 | `readonly` | 2 | mutate without flag, env, or `allow_input` in config |
-| `denied` | 2 | target matches user deny/confine policy |
+| `denied` | 2 | target matches user deny/confine policy, or `clipboard` without a grant |
 | `input_blocked` | 2 | session lock detected |
-| `bad_key` | 2 | Super/logo combo — use `dispatch` |
+| `bad_key` | 2 | Super/logo combo — use `dispatch`; also empty or unmappable combo |
+| `bad_arg` | 2 | argument the seat cannot map (unknown `--button`) |
+| `not_implemented` | 2 | backend does not implement the requested capability |
 | `usage` | 2 | argparse (no envelope) |
 
 ## Rules

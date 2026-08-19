@@ -152,6 +152,8 @@ def capture(
         if focused is None:
             raise GrimFailed("no outputs")
         if full and len(outputs) > 1:
+            # Bare grim (no -o/-g) composites the whole layout; the union
+            # rectangle below is what it produces, reported for mapping.
             min_x = min(item.x for item in outputs)
             min_y = min(item.y for item in outputs)
             max_x = max(item.x + item.width for item in outputs)

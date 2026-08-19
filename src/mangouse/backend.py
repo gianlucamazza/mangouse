@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Protocol
 
-from mangouse.models import Check, Desktop, Output, Window
+from mangouse.models import Check, Cursor, Desktop, Output, Window
 
 
 class Backend(Protocol):
@@ -27,6 +27,8 @@ class Backend(Protocol):
     def window(self, window_id: int) -> Window: ...
 
     def focusing(self) -> Window | None: ...
+
+    def cursor(self) -> Cursor | None: ...
 
     def focus_window(self, window_id: int) -> None: ...
 

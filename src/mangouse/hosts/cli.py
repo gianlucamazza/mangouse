@@ -29,11 +29,13 @@ def _attach_then(
     args: argparse.Namespace,
     *,
     at: tuple[float, float] | None = None,
+    backend: Any = None,
 ) -> dict[str, Any]:
     then = getattr(args, "then", "none") or "none"
     if then == "none":
         return payload
-    backend = resolve_backend(args.backend)
+    if backend is None:
+        backend = resolve_backend(args.backend)
     if then == "desktop":
         payload["desktop"] = to_dict(backend.desktop())
     elif then == "shot":
@@ -139,10 +141,13 @@ def cmd_key(args: argparse.Namespace) -> int:
 def cmd_click(args: argparse.Namespace) -> int:
     before: str | None = None
     backend = None
+    # One backend for the whole command: each resolve re-reads config and
+    # re-shells the compositor IPC.
+    if getattr(args, "then", "none") != "none":
+        backend = resolve_backend(args.backend)
     if getattr(args, "then", "none") == "shot":
         from mangouse.screen import region_digest
 
-        backend = resolve_backend(args.backend)
         before = region_digest(backend, args.x, args.y)
     data = input_mod.click(
         args.x,
@@ -156,11 +161,12 @@ def cmd_click(args: argparse.Namespace) -> int:
         _envelope(ok=True, action="click", data=data),
         args,
         at=(args.x, args.y),
+        backend=backend,
     )
     if getattr(args, "then", "none") == "shot":
         from mangouse.screen import classify_hit, region_digest
 
-        after = region_digest(resolve_backend(args.backend), args.x, args.y)
+        after = region_digest(backend, args.x, args.y)
         payload["hit"] = classify_hit(before, after)
     human = f"click {args.button} {int(args.x)},{int(args.y)}\n"
     return _print(payload, as_json=args.json, human=human)
@@ -362,6 +368,7 @@ def main(argv: list[str] | None = None) -> int:
                 "denied",
                 "input_blocked",
                 "bad_key",
+                "bad_arg",
             }
             else 1
         )
