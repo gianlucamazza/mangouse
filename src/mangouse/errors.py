@@ -66,6 +66,13 @@ class BadKey(MangouseError):
         )
 
 
+class BadConfig(MangouseError):
+    """config.toml is unreadable or holds a value of the wrong shape."""
+
+    def __init__(self, detail: str) -> None:
+        super().__init__("bad_config", detail)
+
+
 class BadArg(MangouseError):
     """Caller passed a value the seat cannot map. Not a missing dependency."""
 

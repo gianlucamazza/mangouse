@@ -150,3 +150,77 @@ def test_probe_pending_when_handshake_times_out(monkeypatch) -> None:
     assert result["state"] == "pending"
     assert result["ok"] is False
     assert result["via"] == "ws"
+
+
+def _server_frame(opcode: int, payload: bytes, *, fin: bool = True) -> bytes:
+    """Server-to-client frame: no mask bit, as the engine sends them."""
+    import struct
+
+    head = bytearray([(0x80 if fin else 0x00) | opcode])
+    n = len(payload)
+    if n < 126:
+        head.append(n)
+    elif n < 65536:
+        head.append(126)
+        head.extend(struct.pack("!H", n))
+    else:
+        head.append(127)
+        head.extend(struct.pack("!Q", n))
+    return bytes(head) + payload
+
+
+def test_ws_recv_reassembles_fragmented_text() -> None:
+    """A message split across continuation frames must not arrive truncated."""
+    import socket
+
+    from mangouse.devtools import _ws_recv
+
+    left, right = socket.socketpair()
+    try:
+        right.sendall(_server_frame(0x1, b'{"id":1,"res', fin=False))
+        right.sendall(_server_frame(0x9, b"ping"))  # control frame interleaved
+        right.sendall(_server_frame(0x0, b'ult":{}}', fin=True))
+        left.settimeout(5.0)
+        assert _ws_recv(left) == '{"id":1,"result":{}}'
+    finally:
+        left.close()
+        right.close()
+
+
+def test_ws_recv_rejects_an_oversized_frame() -> None:
+    import socket
+    import struct
+
+    import pytest
+
+    from mangouse.devtools import _MAX_FRAME, _ws_recv
+
+    left, right = socket.socketpair()
+    try:
+        # Advertise more than the cap without sending it: must fail fast.
+        right.sendall(bytes([0x81, 127]) + struct.pack("!Q", _MAX_FRAME + 1))
+        left.settimeout(5.0)
+        with pytest.raises(OSError):
+            _ws_recv(left)
+    finally:
+        left.close()
+        right.close()
+
+
+def test_call_turns_invalid_json_into_oserror() -> None:
+    """Callers guard the protocol path with `except OSError`; nothing else."""
+    import socket
+
+    import pytest
+
+    from mangouse.devtools import _call
+
+    left, right = socket.socketpair()
+    try:
+        left.settimeout(5.0)
+        right.sendall(_server_frame(0x1, b"{not json"))
+        with pytest.raises(OSError):
+            _call(left, "Target.getTargets", {}, 1)
+    finally:
+        left.close()
+        right.close()

@@ -191,7 +191,9 @@ def click(
                 if window_id is not None:
                     out["window_id"] = window_id
                 return out
-        except OSError:
+        except (OSError, ValueError):
+            # Protocol path unusable (transport, timeout, malformed reply):
+            # fall through to the seat rather than failing the click.
             pass
     _ydotool(["mousemove", "-a", "-x", str(int(x)), "-y", str(int(y))], runner)
     _ydotool(["click", code], runner)

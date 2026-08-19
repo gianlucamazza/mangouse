@@ -5,6 +5,50 @@ All notable changes to mangouse are documented here. Version source:
 
 Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [0.7.0] — 2026-08-19
+
+Hardening pass on the seat gates and the hand-rolled protocol layer. No new
+commands.
+
+### Fixed
+
+- **A scalar string in a policy key was iterated as characters.**
+  `deny_app_ids = "vault"` became eight one-letter substrings that match
+  almost every window; the same slip on `confine_app_ids` silently disabled
+  confinement, and on `lock_procs` broke lock detection. A bare string is now
+  one token.
+- **A malformed `config.toml` escaped as a Python traceback** (`ValueError`,
+  `TOMLDecodeError`) instead of the `--json` envelope, taking `doctor` — the
+  diagnostic command — down with it. Config faults are now `bad_config`,
+  exit 2.
+- **The DevTools holder died on a malformed local request.**
+  `json.JSONDecodeError` is not an `OSError`, so it escaped `serve()`'s
+  handler and ended the seat session's protocol client. Malformed input is
+  now an error reply; the holder stays up.
+- **`_recv_json` buffered without bound**: a peer that never sent a newline
+  could grow the holder's memory. Capped at 1 MiB.
+- **The holder socket was chmod'd after `bind()`**, leaving a window where
+  it carried the process umask. The bind now runs under `umask 0o077`, and
+  `$XDG_RUNTIME_DIR/mangouse/` (shots and socket) has its `0700` re-asserted
+  rather than inherited from whatever an earlier run left.
+- **`_ws_recv` ignored the FIN bit**, so a fragmented CDP reply arrived
+  truncated and parsed as invalid JSON. Continuation frames are reassembled
+  and interleaved control frames skipped; frames are capped at 32 MiB.
+- **Protocol faults escaped as `ValueError`/`struct.error`** past the
+  `except OSError` guard that is supposed to fall back to ydotool, so a
+  misbehaving endpoint failed the click instead of degrading to the seat.
+- **`_call` could spin indefinitely** on a chatty target while waiting for
+  its reply id; it now has a deadline.
+- **`session_locked()` abandoned the whole scan** on the first `pgrep`
+  timeout, so a lock client later in the list went unnoticed. It now
+  continues; only a missing `pgrep` gives up.
+- **`Holder.serve()` crashed when not on the main thread** (`signal.signal`
+  raises there), which also made it untestable.
+
+### Changed
+
+- `runtime_dir()` has one definition (`screen.py`); `devtools_hold` delegates.
+
 ## [0.6.0] — 2026-08-19
 
 ### Changed

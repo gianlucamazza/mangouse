@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import contextlib
 import hashlib
 import os
 import shutil
@@ -16,9 +17,17 @@ from mangouse.models import Output, Shot, Window, to_dict
 
 
 def runtime_dir() -> Path:
-    base = Path(os.environ.get("XDG_RUNTIME_DIR", f"/run/user/{os.getuid()}"))
+    """Owner-only scratch dir. Shots hold every pixel on the output.
+
+    `mkdir(mode=)` is masked by umask and `exist_ok` keeps whatever mode an
+    earlier run left behind, so the mode is re-asserted on every call.
+    """
+    raw = os.environ.get("XDG_RUNTIME_DIR", "").strip()
+    base = Path(raw) if raw else Path(f"/run/user/{os.getuid()}")
     out = base / "mangouse"
     out.mkdir(mode=0o700, parents=True, exist_ok=True)
+    with contextlib.suppress(OSError):
+        out.chmod(0o700)
     return out
 
 

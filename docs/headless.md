@@ -63,6 +63,7 @@ Cursor: `x`, `y`, `output` (nullable). Null when the backend cannot report it.
 | `input_blocked` | 2 | session lock detected |
 | `bad_key` | 2 | Super/logo combo — use `dispatch`; also empty or unmappable combo |
 | `bad_arg` | 2 | argument the seat cannot map (unknown `--button`) |
+| `bad_config` | 2 | `config.toml` unreadable, or a key of the wrong shape |
 | `not_implemented` | 2 | backend does not implement the requested capability |
 | `usage` | 2 | argparse (no envelope) |
 

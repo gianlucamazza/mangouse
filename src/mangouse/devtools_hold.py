@@ -10,6 +10,7 @@ Not a DOM agent. Not a TCP service.
 
 from __future__ import annotations
 
+import contextlib
 import json
 import os
 import signal
@@ -26,14 +27,14 @@ _HOLD_ENV = "MANGOUSE_DEVTOOLS_HOLD"
 _ACCEPT_TIMEOUT = 1.0
 _CLIENT_TIMEOUT = 8.0
 _SPAWN_WAIT = 2.0
+_MAX_REQUEST = 1 << 20
 
 
 def runtime_dir() -> Path:
-    raw = os.environ.get("XDG_RUNTIME_DIR", "").strip()
-    base = Path(raw) if raw else Path(f"/run/user/{os.getuid()}")
-    path = base / "mangouse"
-    path.mkdir(mode=0o700, exist_ok=True)
-    return path
+    """Same owner-only dir as the shots; one definition, one mode."""
+    from mangouse.screen import runtime_dir as _dir
+
+    return _dir()
 
 
 def socket_path() -> Path:
@@ -49,16 +50,26 @@ def _encode(payload: dict[str, Any]) -> bytes:
 
 
 def _recv_json(sock: socket.socket) -> dict[str, Any]:
+    """One JSON line. Every malformed input is an OSError, never a crash.
+
+    The holder is long-lived: a peer that sends garbage, or never sends a
+    newline, must not take it down or grow its memory without bound.
+    """
     buf = bytearray()
     while b"\n" not in buf:
         chunk = sock.recv(4096)
         if not chunk:
             break
         buf.extend(chunk)
+        if len(buf) > _MAX_REQUEST:
+            raise OSError("holder request too large")
     if not buf:
         raise OSError("holder closed")
     line = bytes(buf).split(b"\n", 1)[0]
-    data = json.loads(line.decode())
+    try:
+        data = json.loads(line.decode())
+    except (ValueError, UnicodeDecodeError) as exc:
+        raise OSError(f"holder payload is not json: {exc}") from exc
     if not isinstance(data, dict):
         raise OSError("holder payload is not an object")
     return data
@@ -92,7 +103,7 @@ def stop() -> bool:
         return True
     path = socket_path()
     if path.exists():
-        with __import__("contextlib").suppress(OSError):
+        with contextlib.suppress(OSError):
             path.unlink()
     return False
 
@@ -109,7 +120,7 @@ def ensure(*, spawn: bool = True) -> bool:
         return False
     path = socket_path()
     if path.exists() and not ping():
-        with __import__("contextlib").suppress(OSError):
+        with contextlib.suppress(OSError):
             path.unlink()
     subprocess.Popen(
         [sys.executable, "-m", "mangouse", "devtools", "--hold"],
@@ -171,7 +182,7 @@ class Holder:
 
     def close_engine(self) -> None:
         if self._engine is not None:
-            with __import__("contextlib").suppress(OSError):
+            with contextlib.suppress(OSError):
                 self._engine.close()
             self._engine = None
 
@@ -276,10 +287,17 @@ class Holder:
         if path.exists():
             if ping():
                 return 0
-            with __import__("contextlib").suppress(OSError):
+            with contextlib.suppress(OSError):
                 path.unlink()
         server = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-        server.bind(str(path))
+        # bind() creates the node with the process umask. chmod afterwards
+        # leaves a window where the socket is world-connectable, so narrow
+        # the umask across the bind itself.
+        old_umask = os.umask(0o077)
+        try:
+            server.bind(str(path))
+        finally:
+            os.umask(old_umask)
         os.chmod(path, 0o600)
         server.listen(4)
         server.settimeout(_ACCEPT_TIMEOUT)
@@ -287,8 +305,11 @@ class Holder:
         def _stop(_signum: int, _frame: object) -> None:
             self._stop = True
 
-        signal.signal(signal.SIGTERM, _stop)
-        signal.signal(signal.SIGINT, _stop)
+        # Only the main thread may install handlers; an embedded holder
+        # (thread, host process) must still serve, not crash on startup.
+        with contextlib.suppress(ValueError):
+            signal.signal(signal.SIGTERM, _stop)
+            signal.signal(signal.SIGINT, _stop)
         self.connect_engine()
         try:
             while not self._stop:
@@ -308,11 +329,15 @@ class Holder:
                         client.sendall(_encode(reply))
                     except OSError:
                         continue
+                    except Exception as exc:  # one bad client never ends the seat session
+                        with contextlib.suppress(OSError):
+                            client.sendall(_encode({"ok": False, "error": str(exc)}))
+                        continue
         finally:
             self.close_engine()
-            with __import__("contextlib").suppress(OSError):
+            with contextlib.suppress(OSError):
                 server.close()
-            with __import__("contextlib").suppress(OSError):
+            with contextlib.suppress(OSError):
                 path.unlink()
         return 0
 

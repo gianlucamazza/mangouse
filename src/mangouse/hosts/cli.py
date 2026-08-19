@@ -369,6 +369,7 @@ def main(argv: list[str] | None = None) -> int:
                 "input_blocked",
                 "bad_key",
                 "bad_arg",
+                "bad_config",
             }
             else 1
         )

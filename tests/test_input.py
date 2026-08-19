@@ -127,3 +127,31 @@ def test_confine_rejects_other_group() -> None:
     except Denied:
         return
     raise AssertionError("expected Denied")
+
+
+def test_click_falls_back_to_seat_when_devtools_misbehaves(monkeypatch, backend) -> None:
+    """A malformed protocol reply must degrade to ydotool, not raise."""
+    from mangouse import input as input_mod
+
+    def boom(**kwargs):
+        raise ValueError("devtools sent garbage")
+
+    monkeypatch.setattr(input_mod, "click_via_devtools", boom)
+    monkeypatch.setattr(input_mod, "require_input", lambda flag=False: None)
+    monkeypatch.setattr(input_mod.shutil, "which", lambda name: f"/usr/bin/{name}")
+
+    ran: list[list[str]] = []
+
+    def runner(cmd: list[str]) -> str:
+        ran.append(cmd)
+        return ""
+
+    out = input_mod.click(
+        100.0,
+        200.0,
+        allow_input=True,
+        backend=backend,
+        runner=runner,
+    )
+    assert out["via"] == "ydotool"
+    assert any("mousemove" in c for c in ran)

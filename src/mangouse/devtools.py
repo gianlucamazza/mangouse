@@ -23,6 +23,7 @@ import json
 import os
 import socket
 import struct
+import time
 import urllib.error
 import urllib.request
 from pathlib import Path
@@ -34,6 +35,9 @@ from mangouse.models import Window
 
 _TIMEOUT = 8.0
 _PROBE_TIMEOUT = 3.0
+# A CDP reply is JSON, not a stream. Cap it so a hostile or wedged endpoint
+# cannot drive this process out of memory.
+_MAX_FRAME = 32 * 1024 * 1024
 
 
 def _config_roots() -> list[Path]:
@@ -303,24 +307,52 @@ def _ws_send(sock: socket.socket, text: str) -> None:
     sock.sendall(header + payload)
 
 
-def _ws_recv(sock: socket.socket) -> str:
+def _ws_frame(sock: socket.socket) -> tuple[int, bool, bytes]:
+    """One frame: (opcode, fin, payload). Raises OSError on anything odd."""
     hdr = _recvexact(sock, 2)
     opcode = hdr[0] & 0x0F
+    fin = bool(hdr[0] & 0x80)
     length = hdr[1] & 0x7F
-    if length == 126:
-        length = struct.unpack("!H", _recvexact(sock, 2))[0]
-    elif length == 127:
-        length = struct.unpack("!Q", _recvexact(sock, 8))[0]
+    try:
+        if length == 126:
+            length = struct.unpack("!H", _recvexact(sock, 2))[0]
+        elif length == 127:
+            length = struct.unpack("!Q", _recvexact(sock, 8))[0]
+    except struct.error as exc:  # short/garbled length header
+        raise OSError(f"devtools frame header: {exc}") from exc
+    if length > _MAX_FRAME:
+        raise OSError(f"devtools frame too large ({length} bytes)")
     if hdr[1] & 0x80:
         mask = _recvexact(sock, 4)
         data = bytes(b ^ mask[i % 4] for i, b in enumerate(_recvexact(sock, length)))
     else:
         data = _recvexact(sock, length)
+    return opcode, fin, data
+
+
+def _ws_recv(sock: socket.socket) -> str:
+    """One complete text message. Reassembles continuation frames."""
+    opcode, fin, data = _ws_frame(sock)
     if opcode == 0x8:
         raise OSError("devtools closed")
     if opcode in (0x9, 0xA):
         return ""
-    return data.decode() if data else ""
+    buf = bytearray(data)
+    while not fin:
+        # Control frames may interleave a fragmented message; skip them.
+        cont_op, fin, chunk = _ws_frame(sock)
+        if cont_op == 0x8:
+            raise OSError("devtools closed")
+        if cont_op in (0x9, 0xA):
+            fin = False
+            continue
+        if len(buf) + len(chunk) > _MAX_FRAME:
+            raise OSError("devtools message too large")
+        buf.extend(chunk)
+    try:
+        return bytes(buf).decode() if buf else ""
+    except UnicodeDecodeError as exc:
+        raise OSError(f"devtools payload is not utf-8: {exc}") from exc
 
 
 def _recvexact(sock: socket.socket, n: int) -> bytes:
@@ -345,11 +377,21 @@ def _call(
     if session_id:
         msg["sessionId"] = session_id
     _ws_send(sock, json.dumps(msg))
+    # The engine interleaves events with replies; bound the wait so a chatty
+    # target cannot keep this call spinning past the socket timeout.
+    deadline = time.monotonic() + _TIMEOUT
     while True:
+        if time.monotonic() > deadline:
+            raise TimeoutError(f"devtools {method} timed out")
         raw = _ws_recv(sock)
         if not raw:
             continue
-        payload = json.loads(raw)
+        try:
+            payload = json.loads(raw)
+        except ValueError as exc:
+            raise OSError(f"devtools sent invalid json: {exc}") from exc
+        if not isinstance(payload, dict):
+            raise OSError("devtools sent a non-object message")
         if payload.get("id") == msg_id:
             if "error" in payload:
                 raise OSError(str(payload["error"]))

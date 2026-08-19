@@ -41,8 +41,10 @@ def session_locked() -> bool:
                 capture_output=True,
                 timeout=2,
             )
-        except (FileNotFoundError, subprocess.TimeoutExpired):
-            return False
+        except FileNotFoundError:
+            return False  # no pgrep at all: the check cannot run
+        except subprocess.TimeoutExpired:
+            continue  # one slow probe must not skip the other lock clients
         if proc.returncode == 0:
             return True
     return False

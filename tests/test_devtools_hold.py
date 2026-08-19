@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import contextlib
+import time
 from pathlib import Path
 
 from mangouse.devtools import click_via_devtools, probe
@@ -117,3 +119,95 @@ def test_window_payload_roundtrip() -> None:
 def test_call_none_without_socket(tmp_path: Path, monkeypatch) -> None:
     monkeypatch.setenv("XDG_RUNTIME_DIR", str(tmp_path))
     assert call({"op": "ping"}) is None
+
+
+def _run_holder(tmp_path: Path, monkeypatch):
+    """A real Holder on an isolated socket, with no engine to reach.
+
+    Hermetic on purpose: a unit test must never open the developer's live
+    browser, which would block on the inspect Allow dialog.
+    """
+    import socket
+    import threading
+
+    monkeypatch.setenv("XDG_RUNTIME_DIR", str(tmp_path))
+    monkeypatch.setenv("MANGOUSE_DEVTOOLS_HOLD", "0")
+    monkeypatch.setattr("mangouse.devtools.browser_ws_url", lambda: "")
+
+    holder = Holder()
+    thread = threading.Thread(target=holder.serve, daemon=True)
+    thread.start()
+    path = tmp_path / "mangouse" / "devtools.sock"
+    for _ in range(200):
+        if path.exists() and call({"op": "ping"}, timeout=1.0):
+            break
+        time.sleep(0.02)
+    assert call({"op": "ping"}, timeout=1.0), "holder never came up"
+    assert socket.AF_UNIX  # unix-only by design
+    return path, thread
+
+
+def _stop_holder(thread) -> None:
+    call({"op": "stop"}, timeout=2.0)
+    thread.join(timeout=5.0)
+    assert not thread.is_alive(), "holder did not exit"
+
+
+def test_holder_survives_a_malformed_request(tmp_path: Path, monkeypatch) -> None:
+    """Regression: JSONDecodeError is not an OSError, so serve() died on it."""
+    import socket
+
+    path, thread = _run_holder(tmp_path, monkeypatch)
+    try:
+        client = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        client.settimeout(5.0)
+        client.connect(str(path))
+        client.sendall(b"not json at all\n")
+        with contextlib.suppress(OSError):
+            client.recv(4096)
+        client.close()
+        assert call({"op": "ping"}, timeout=2.0) == {"ok": True, "op": "pong"}
+    finally:
+        _stop_holder(thread)
+
+
+def test_holder_socket_is_owner_only(tmp_path: Path, monkeypatch) -> None:
+    import stat
+
+    path, thread = _run_holder(tmp_path, monkeypatch)
+    try:
+        assert stat.S_IMODE(path.stat().st_mode) == 0o600
+        assert stat.S_IMODE(path.parent.stat().st_mode) == 0o700
+    finally:
+        _stop_holder(thread)
+
+
+def test_recv_json_rejects_an_endless_line() -> None:
+    """A peer that never sends a newline must not grow the holder's memory."""
+    import socket
+    import threading
+
+    import pytest
+
+    from mangouse.devtools_hold import _MAX_REQUEST, _recv_json
+
+    left, right = socket.socketpair()
+    stop = threading.Event()
+
+    def _flood() -> None:
+        with contextlib.suppress(OSError):
+            while not stop.is_set():
+                right.sendall(b"x" * 65536)  # never a newline
+
+    sender = threading.Thread(target=_flood, daemon=True)
+    sender.start()
+    try:
+        left.settimeout(10.0)
+        with pytest.raises(OSError):
+            _recv_json(left)
+    finally:
+        stop.set()
+        left.close()
+        right.close()
+        sender.join(timeout=5.0)
+    assert _MAX_REQUEST > 0
