@@ -98,6 +98,9 @@ def test_skill_and_contract_name_cursor() -> None:
     assert "ok` means ydotool ran" in skill or "ok` means ydotool" in skill
     assert "hit" in skill
     assert "target" in skill
+    assert "shot_ready" in skill
+    assert "click_ready" in skill
+    assert 'error: "usage"' in skill
     # doctor reports DevTools as a `checks[]` row, not a `devtools` object.
     assert "devtools.state" not in skill
     assert "doctor` `via=hold" not in skill

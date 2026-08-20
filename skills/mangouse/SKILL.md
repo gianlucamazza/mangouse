@@ -19,8 +19,11 @@ contract (envelope, fields, error codes) is
 - `command -v mangouse` — if missing, mangouse is not installed. Say so; do
   not try to install it.
 - `mangouse --json doctor`. Stop if `ready` is false; report `blockers`.
+  `ready` is Wayland plus a backend. A shot also needs `shot_ready`; a click
+  also needs `click_ready`. Missing `grim` does not clear `ready`.
 - `ok` is envelope health. `doctor.ready` is session health. Branch on `error`,
-  not on `message`. Require `"schema": 1`.
+  not on `message`. Require `"schema": 1`. A `--json` argparse fault is
+  `error: "usage"` (exit 2), not an empty stdout.
 
 ## Observe first
 
