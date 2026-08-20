@@ -125,8 +125,8 @@ Two hosts sit on the same core:
 - **CLI + skill.** The primary path. `skills/mangouse/SKILL.md` is a playbook
   an agent can follow; `install.sh` symlinks it into the skill roots you have.
 - **MCP.** Install the `mcp` extra and register the `mangouse-mcp` stdio server
-  with your MCP client. It exposes `doctor`, `desktop`, `shot`, and `target`,
-  all read-only. There is no mutate tool on MCP and there will not be one.
+  with your MCP client. It exposes `doctor`, `desktop`, `shot`, `target`, and
+  `zoom`, all read-only. There is no mutate tool on MCP and there will not be one.
 
 Registration is client-specific; the command to register is always
 `mangouse-mcp` with no arguments. mangouse never writes an agent host's config
@@ -139,7 +139,6 @@ Find the blocker id from `doctor`:
 | `blockers` contains | Meaning                                             | Fix                                                                               |
 | ------------------- | --------------------------------------------------- | --------------------------------------------------------------------------------- |
 | `wayland`           | `WAYLAND_DISPLAY` is unset                          | You are not in a Wayland session, or you are in a shell that did not inherit it   |
-| `bin_grim`          | `grim` is not on `PATH`                             | Install `grim`; without it `shot` and `zoom` cannot run                           |
 | `backend`           | No adapter reported itself available                | Your compositor has no backend yet — see [backends/README.md](backends/README.md) |
 | `backend_socket`    | The compositor's IPC socket is missing              | The compositor is not running, or this shell lacks its instance environment       |
 | `backend_ipc`       | The IPC binary is not on `PATH`                     | Install it (`mmsg` for mango)                                                     |
@@ -149,8 +148,9 @@ Non-blocking checks report a problem without stopping observation:
 
 | Check                       | `ok: false` means                                                                                                              |
 | --------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| `bin_grim`                  | `shot` and `zoom` cannot run; `desktop` / `target` still work (`shot_ready` is false)                                          |
 | `bin_wtype` / `bin_ydotool` | Keyboard or pointer input is unavailable; observation still works                                                              |
-| `ydotool_socket`            | `ydotool` is installed but its daemon is not running, so clicks will fail                                                      |
+| `ydotool_socket`            | `ydotool` is installed but its daemon is not running, so clicks will fail (`click_ready` is false)                             |
 | `bin_wl_paste`              | `clipboard` cannot read                                                                                                        |
 | `devtools`                  | No browser protocol endpoint is connected. Expected unless you want protocol clicks — see [cli-reference.md](cli-reference.md) |
 

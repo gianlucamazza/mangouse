@@ -1,11 +1,11 @@
-"""mangouse CLI. --json is the agent contract (see docs/headless.md)."""
+"""mangouse CLI. --json is the agent contract (see docs/json-contract.md)."""
 
 from __future__ import annotations
 
 import argparse
 import json
 import sys
-from typing import Any
+from typing import Any, Never
 
 from mangouse import __version__
 from mangouse import input as input_mod
@@ -78,6 +78,7 @@ def cmd_doctor(args: argparse.Namespace) -> int:
     payload = _envelope(ok=True, action="doctor", data=report)
     lines = [
         f"ready={report['ready']} observe={report['observe_ready']} "
+        f"shot={report['shot_ready']} click={report['click_ready']} "
         f"input_implemented={report['input_implemented']}",
     ]
     if report["blockers"]:
@@ -148,6 +149,7 @@ def cmd_click(args: argparse.Namespace) -> int:
     if getattr(args, "then", "none") == "shot":
         from mangouse.screen import region_digest
 
+        assert backend is not None
         before = region_digest(backend, args.x, args.y)
     data = input_mod.click(
         args.x,
@@ -166,6 +168,7 @@ def cmd_click(args: argparse.Namespace) -> int:
     if getattr(args, "then", "none") == "shot":
         from mangouse.screen import classify_hit, region_digest
 
+        assert backend is not None
         after = region_digest(backend, args.x, args.y)
         payload["hit"] = classify_hit(before, after)
     human = f"click {args.button} {int(args.x)},{int(args.y)}\n"
@@ -236,8 +239,29 @@ def cmd_devtools(args: argparse.Namespace) -> int:
     return _print(payload, as_json=args.json, human=human)
 
 
+class _Parser(argparse.ArgumentParser):
+    """Emit the JSON envelope for argparse faults when ``--json`` is present.
+
+    Without this, ``mangouse --json click`` (missing X Y) prints help on
+    stderr and an agent that only reads stdout sees nothing it can branch on.
+
+    ``--json`` is parsed by the parent; the fault often happens on a
+    subparser that never saw the flag, so the mode is stored on the class.
+    """
+
+    json_mode = False
+
+    def error(self, message: str) -> Never:
+        if _Parser.json_mode:
+            payload = _envelope(ok=False, action="usage", error="usage", message=message)
+            json.dump(payload, sys.stdout, indent=2)
+            sys.stdout.write("\n")
+            raise SystemExit(2)
+        super().error(message)
+
+
 def build_parser() -> argparse.ArgumentParser:
-    p = argparse.ArgumentParser(
+    p = _Parser(
         prog="mangouse",
         description="Observe (and later drive) a Wayland desktop. Backends are pluggable.",
     )
@@ -279,11 +303,11 @@ def build_parser() -> argparse.ArgumentParser:
     )
     shot.set_defaults(func=cmd_shot)
 
-    then = dict(
-        default="none",
-        choices=("none", "desktop", "shot"),
-        help="attach a fresh desktop or shot after the action",
-    )
+    then: dict[str, Any] = {
+        "default": "none",
+        "choices": ("none", "desktop", "shot"),
+        "help": "attach a fresh desktop or shot after the action",
+    }
 
     focus = sub.add_parser("focus", help="focus a window by id")
     focus.add_argument("window_id", type=int)
@@ -353,6 +377,8 @@ def build_parser() -> argparse.ArgumentParser:
 
 def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
+    raw = argv if argv is not None else sys.argv[1:]
+    _Parser.json_mode = "--json" in raw
     args = parser.parse_args(argv)
     as_json = bool(getattr(args, "json", False))
     try:

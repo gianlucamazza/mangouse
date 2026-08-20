@@ -4,10 +4,10 @@ from __future__ import annotations
 
 import os
 import shutil
-from pathlib import Path
 
 from mangouse.backend import Backend
 from mangouse.errors import MangouseError, NoSession
+from mangouse.input import ydotool_socket_path
 from mangouse.models import Check
 from mangouse.session import resolve_backend
 
@@ -34,8 +34,10 @@ def run_doctor(backend: Backend | None = None, name: str | None = None) -> dict:
     ydotool = _which("ydotool")
     wlpaste = _which("wl-paste")
     bins = {"grim": grim, "wtype": wtype, "ydotool": ydotool, "wl-paste": wlpaste}
+    # grim is required for shot/zoom, not for desktop/target. A missing
+    # binary must not claim the compositor session is unobservable.
     checks.append(
-        Check(id="bin_grim", ok=bool(grim), detail=grim or "grim not on PATH", blocker=True)
+        Check(id="bin_grim", ok=bool(grim), detail=grim or "grim not on PATH", blocker=False)
     )
     checks.append(
         Check(id="bin_wtype", ok=bool(wtype), detail=wtype or "wtype not on PATH", blocker=False)
@@ -49,8 +51,7 @@ def run_doctor(backend: Backend | None = None, name: str | None = None) -> dict:
         )
     )
 
-    uid = os.getuid()
-    ydo = Path(f"/run/user/{uid}/.ydotool_socket")
+    ydo = ydotool_socket_path()
     checks.append(
         Check(
             id="ydotool_socket",
@@ -97,7 +98,9 @@ def run_doctor(backend: Backend | None = None, name: str | None = None) -> dict:
     return {
         "ready": observe_ready,
         "observe_ready": observe_ready,
+        "shot_ready": observe_ready and bool(grim),
         "input_ready": observe_ready and bool(wtype),
+        "click_ready": observe_ready and bool(ydotool) and ydo.exists(),
         "input_implemented": True,
         "backend": backend_name,
         "version": version,

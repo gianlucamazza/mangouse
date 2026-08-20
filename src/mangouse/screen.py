@@ -9,11 +9,17 @@ import shutil
 import subprocess
 import time
 from pathlib import Path
+from typing import TypedDict
 
 from mangouse.backend import Backend
 from mangouse.contract import DEFAULT_FIT
 from mangouse.errors import GrimFailed, MissingDep, UnknownWindow
 from mangouse.models import Output, Shot, Window, to_dict
+
+# Captures hold every pixel on an output. Drop them after this many seconds
+# so an agent that shots in a loop does not leave the session on tmpfs until
+# reboot. The file just written is newer than the cutoff.
+SHOT_TTL_SECONDS = 30 * 60
 
 
 def runtime_dir() -> Path:
@@ -29,6 +35,26 @@ def runtime_dir() -> Path:
     with contextlib.suppress(OSError):
         out.chmod(0o700)
     return out
+
+
+def prune_shots(
+    directory: Path | None = None,
+    *,
+    now: float | None = None,
+    ttl: int = SHOT_TTL_SECONDS,
+) -> int:
+    """Unlink ``shot-*`` files older than ``ttl`` seconds. Best-effort."""
+    root = directory if directory is not None else runtime_dir()
+    cutoff = (time.time() if now is None else now) - ttl
+    removed = 0
+    for path in root.glob("shot-*"):
+        try:
+            if path.is_file() and path.stat().st_mtime < cutoff:
+                path.unlink()
+                removed += 1
+        except OSError:
+            continue
+    return removed
 
 
 def grim_geometry(x: int, y: int, w: int, h: int) -> str:
@@ -56,12 +82,17 @@ def window_at(windows: list[Window], x: float, y: float) -> Window | None:
     return focused or hits[-1]
 
 
+class ThenShot(TypedDict, total=False):
+    window_id: int
+    output: str
+
+
 def then_capture_kwargs(
     *,
     window_id: int | None,
     at: tuple[float, float] | None,
     outputs: list[Output],
-) -> dict[str, int | str]:
+) -> ThenShot:
     """Where `--then shot` should look. Window wins; else the output under `at`."""
     if window_id is not None:
         return {"window_id": window_id}
@@ -117,6 +148,7 @@ def capture(
     grim = shutil.which("grim")
     if not grim:
         raise MissingDep("grim")
+    prune_shots()
 
     out_name: str | None = None
     wid: int | None = None

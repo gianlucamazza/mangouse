@@ -23,7 +23,7 @@ Failure:
 
 | action | extra keys on success |
 |--------|------------------------|
-| `doctor` | `ready`, `observe_ready`, `input_ready`, `input_implemented`, `backend`, `version`, `session`, `bins`, `checks`, `blockers` |
+| `doctor` | `ready`, `observe_ready`, `shot_ready`, `input_ready`, `click_ready`, `input_implemented`, `backend`, `version`, `session`, `bins`, `checks`, `blockers` |
 | `desktop` | `desktop` (`backend`, `version`, `outputs`, `windows`, `focused`, `cursor`) |
 | `shot` | `shot` (`path`, `x`, `y`, `width`, `height`, `scale`, `output`, `window_id`) |
 | `zoom` | `shot` (crop around a global point; `shot.output` is the output that contains it) |
@@ -41,6 +41,10 @@ Failure:
 `--fit 0` disables the cap. `--lossless` still fits unless `--fit 0`.
 
 `doctor` uses `ok: true` when the envelope is well-formed; readiness is `ready`.
+`ready` / `observe_ready` mean Wayland plus a backend (semantic snapshot).
+`shot_ready` also needs `grim`. `input_ready` is keyboard (`wtype`).
+`click_ready` is pointer (`ydotool` and its socket). Missing `grim` is not a
+blocker of `observe_ready`.
 
 Window: `id`, `pid`, `app_id`, `title`, `output`, `groups`, geometry,
 `focused`, `visible`, `extras`.
@@ -65,7 +69,7 @@ Cursor: `x`, `y`, `output` (nullable). Null when the backend cannot report it.
 | `bad_arg` | 2 | argument the seat cannot map (unknown `--button`) |
 | `bad_config` | 2 | `config.toml` unreadable, or a key of the wrong shape |
 | `not_implemented` | 2 | backend does not implement the requested capability |
-| `usage` | 2 | argparse (no envelope) |
+| `usage` | 2 | argparse; JSON envelope when `--json`, otherwise help on stderr |
 
 ## Rules
 

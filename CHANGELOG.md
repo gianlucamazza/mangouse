@@ -5,6 +5,40 @@ All notable changes to mangouse are documented here. Version source:
 
 Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [0.9.0] — 2026-08-20
+
+Agent-contract and doctor honesty. No new mutate commands.
+
+### Added
+
+- **`--json` usage errors now emit the envelope.** `mangouse --json click`
+  without coordinates used to print argparse help on stderr and leave stdout
+  empty, so an agent that only parses JSON saw nothing it could branch on.
+  `error` is `usage`, `action` is `usage`, exit 2. Without `--json` the
+  human help is unchanged.
+- **MCP tool `zoom`.** It was already observe on the CLI; an MCP-only agent
+  had to capture a whole output to look at one point. Still read-only.
+- **MCP tools return the envelope on `MangouseError`.** A missing compositor
+  or `grim` was an SDK tool-error, not `schema: 1`. CLI already wrapped;
+  MCP is a peer on the same contract now.
+- `doctor.shot_ready` and `doctor.click_ready`. `input_ready` stays keyboard
+  (`wtype`); `click_ready` is `ydotool` plus its socket.
+
+### Changed
+
+- **`grim` is no longer an observe blocker.** `desktop` and `target` do not
+  need it. Missing `grim` clears `shot_ready` and the `bin_grim` check, and
+  leaves `ready` / `observe_ready` to Wayland plus the backend.
+- Each `shot` / `zoom` unlinks `shot-*` files older than 30 minutes in the
+  runtime dir.
+
+### Fixed
+
+- `doctor`'s `ydotool_socket` check ignored `YDOTOOL_SOCKET`, so a custom
+  path made doctor fail while `click` succeeded.
+- Empty `dispatch` is `bad_arg` (caller fault), not `ipc_failed`.
+- Stale `docs/headless.md` pointer in the CLI module docstring.
+
 ## [0.8.1] — 2026-08-19
 
 ### Fixed

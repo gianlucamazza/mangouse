@@ -37,9 +37,9 @@ clipboard.
 - **User policy.** `deny_app_ids` and `confine_*` gate which window may be
   targeted, raising `denied`. Both come from your config — see
   [configuration.md](configuration.md).
-- **MCP is observe-only.** The extra exposes `doctor`, `desktop`, `shot`, and
-  `target`. All are annotated read-only; no mutate tool exists there, and
-  adding one is out of scope rather than a backlog item.
+- **MCP is observe-only.** The extra exposes `doctor`, `desktop`, `shot`,
+  `target`, and `zoom`. All are annotated read-only; no mutate tool exists
+  there, and adding one is out of scope rather than a backlog item.
 - **No network surface.** The CLI is stdio. No TCP listener, no telemetry, no
   phone-home. The one socket that exists is local and owner-only, below.
 
@@ -66,8 +66,9 @@ tools do not have.
 Screenshots and the protocol socket live in `$XDG_RUNTIME_DIR/mangouse/`,
 mode `0700`, re-asserted on every run rather than inherited from whatever an
 earlier run left behind. On a normal Linux session that is tmpfs, so the
-contents do not survive a reboot — but they do survive until then, and
-mangouse does not delete them for you.
+contents do not survive a reboot. Each `shot` / `zoom` also unlinks `shot-*`
+files older than 30 minutes, so an agent that captures in a loop does not
+leave every pixel of the seat until logout.
 
 A shot is not a crop of one window. `shot` captures an **entire output**:
 every window visible on it, including ones you did not ask about and did not

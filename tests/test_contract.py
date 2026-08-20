@@ -15,6 +15,20 @@ def test_cli_json_includes_schema(capsys) -> None:
     assert payload["error"] == "readonly"
 
 
+def test_json_usage_emits_envelope(capsys) -> None:
+    try:
+        rc = main(["--json", "click"])
+    except SystemExit as exc:
+        rc = exc.code
+    assert rc == 2
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["ok"] is False
+    assert payload["schema"] == SCHEMA
+    assert payload["error"] == "usage"
+    assert payload["action"] == "usage"
+    assert payload["message"]
+
+
 def test_fit_scale_shrinks_and_preserves_ratio() -> None:
     factor, w, h = fit_scale(1920, 1200, 1568)
     assert factor == 1568 / 1920

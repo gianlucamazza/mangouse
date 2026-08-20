@@ -6,6 +6,7 @@ import os
 import shutil
 import subprocess
 from collections.abc import Callable
+from pathlib import Path
 from typing import Any
 
 from mangouse.backend import Backend
@@ -52,6 +53,14 @@ _KEY_NAMES = {
 _CLICK_CODES = {"left": "0xC0", "right": "0xC1", "middle": "0xC2"}
 
 
+def ydotool_socket_path() -> Path:
+    """Socket ``ydotool`` talks to. ``YDOTOOL_SOCKET`` wins over the default."""
+    env = os.environ.get("YDOTOOL_SOCKET", "").strip()
+    if env:
+        return Path(env)
+    return Path(f"/run/user/{os.getuid()}/.ydotool_socket")
+
+
 def _run(cmd: list[str], timeout: float = 5.0) -> str:
     try:
         proc = subprocess.run(cmd, check=False, capture_output=True, text=True, timeout=timeout)
@@ -74,7 +83,7 @@ def _ydotool(args: list[str], runner: Runner | None) -> str:
     exe = shutil.which("ydotool")
     if not exe:
         raise MissingDep("ydotool")
-    env_socket = os.environ.get("YDOTOOL_SOCKET") or f"/run/user/{os.getuid()}/.ydotool_socket"
+    env_socket = str(ydotool_socket_path())
     cmd = [exe, *args]
     if runner:
         return runner(cmd)
@@ -230,6 +239,8 @@ def dispatch(
     backend: Backend | None = None,
 ) -> dict[str, Any]:
     require_input(allow_input)
+    if not spec.strip():
+        raise BadArg("empty dispatch")
     be = backend or resolve_backend()
     result = be.dispatch_action(spec)
     return {"spec": spec, "result": result, "backend": be.name}

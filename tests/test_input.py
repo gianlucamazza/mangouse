@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from mangouse.config import Config, parse_config
-from mangouse.errors import BadKey, Denied, Readonly
+from mangouse.errors import BadArg, BadKey, Denied, Readonly
 from mangouse.input import click, dispatch, focus, press_key, type_text
 from mangouse.models import Window
 from mangouse.policy import assert_target
@@ -90,6 +90,15 @@ def test_dispatch_passthrough() -> None:
     be = FakeBackend()
     dispatch("focusid client,7", allow_input=True, backend=be)
     assert be.calls == [("dispatch", "focusid client,7")]
+
+
+def test_empty_dispatch_is_bad_arg() -> None:
+    try:
+        dispatch("  ", allow_input=True, backend=FakeBackend())
+    except BadArg as exc:
+        assert exc.code == "bad_arg"
+        return
+    raise AssertionError("expected BadArg")
 
 
 def test_click_moves_then_clicks(seat_bins) -> None:

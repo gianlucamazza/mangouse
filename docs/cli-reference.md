@@ -14,7 +14,7 @@ CLI and MCP share the same core. Neither names applications.
 | `mangouse doctor`                                                              | `doctor`  | observe             |
 | `mangouse desktop`                                                             | `desktop` | observe             |
 | `mangouse shot [--output NAME] [--window ID] [--full] [--lossless] [--fit PX]` | `shot`    | observe             |
-| `mangouse zoom X Y [--size PX] [--lossless] [--fit PX]`                        | —         | observe             |
+| `mangouse zoom X Y [--size PX] [--lossless] [--fit PX]`                        | `zoom`    | observe             |
 | `mangouse target`                                                              | `target`  | observe             |
 | `mangouse devtools [--hold] [--stop]`                                          | —         | observe             |
 | `mangouse clipboard`                                                           | —         | `--allow-clipboard` |
@@ -30,17 +30,20 @@ Global flags: `--json`, `--backend NAME`, `--allow-input`, `--allow-clipboard`,
 Every mutate command takes `--then none|desktop|shot`, which attaches a fresh
 observation to the same envelope so you do not need a second round trip.
 
-The MCP extra exposes `doctor`, `desktop`, `shot`, and `target`. All four are
-read-only; mutation is CLI-only by design, not by omission.
+The MCP extra exposes `doctor`, `desktop`, `shot`, `target`, and `zoom`. All
+are read-only; mutation is CLI-only by design, not by omission.
 
 ## doctor
 
 Generic seat checks (Wayland, `grim`, the input binaries) plus whatever the
 active backend reports. `backend` is a field, not a hardcoded assumption.
 
-`ready` is session health; the envelope's `ok` is command health. Do not
-collapse them: `doctor` returning `ok: true` with `ready: false` is the normal
-way it tells you the session is unusable.
+`ready` / `observe_ready` are semantic session health (Wayland + backend);
+the envelope's `ok` is command health. Do not collapse them: `doctor`
+returning `ok: true` with `ready: false` is the normal way it tells you the
+session is unusable. `shot_ready` needs `grim`. `input_ready` is keyboard
+(`wtype`); `click_ready` is pointer (`ydotool` plus its socket). A missing
+`grim` does not block observation.
 
 DevTools status appears here as a row in `checks[]` with id `devtools`, not as
 a top-level object. For its `state` and `via` as real fields, call `devtools`.

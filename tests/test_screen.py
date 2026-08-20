@@ -1,9 +1,13 @@
 from __future__ import annotations
 
+import os
+import time
+
 from mangouse.models import Output, Window
 from mangouse.screen import (
     classify_hit,
     output_containing,
+    prune_shots,
     then_capture_kwargs,
     window_at,
 )
@@ -60,3 +64,20 @@ def test_classify_hit() -> None:
     assert classify_hit("aa", "aa") == "unchanged"
     assert classify_hit(None, "aa") == "unknown"
     assert classify_hit("aa", None) == "unknown"
+
+
+def test_prune_shots_drops_old_files_only(tmp_path) -> None:
+    old = tmp_path / "shot-old.jpg"
+    fresh = tmp_path / "shot-new.jpg"
+    other = tmp_path / "devtools.sock"
+    old.write_bytes(b"x")
+    fresh.write_bytes(b"y")
+    other.write_bytes(b"z")
+    now = time.time()
+    os.utime(old, (now - 3600, now - 3600))
+    os.utime(fresh, (now - 10, now - 10))
+    removed = prune_shots(tmp_path, now=now, ttl=1800)
+    assert removed == 1
+    assert not old.exists()
+    assert fresh.exists()
+    assert other.exists()
