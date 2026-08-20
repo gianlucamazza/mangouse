@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from typing import Protocol
 
 from mangouse.models import Check, Cursor, Desktop, Output, Window
+
+Runner = Callable[[list[str]], str]
 
 
 class Backend(Protocol):
@@ -33,3 +36,11 @@ class Backend(Protocol):
     def focus_window(self, window_id: int) -> None: ...
 
     def dispatch_action(self, spec: str) -> object: ...
+
+
+class BackendType(Protocol):
+    """A ``Backend`` class object: constructible, with a ``name``."""
+
+    name: str
+
+    def __call__(self, runner: Runner | None = None) -> Backend: ...

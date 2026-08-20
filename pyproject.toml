@@ -26,6 +26,10 @@ mangouse-mcp = "mangouse.hosts.mcp:main"
 
 [project.urls]
 Homepage = "https://github.com/gianlucamazza/mangouse"
+Repository = "https://github.com/gianlucamazza/mangouse"
+Issues = "https://github.com/gianlucamazza/mangouse/issues"
+Changelog = "https://github.com/gianlucamazza/mangouse/blob/main/CHANGELOG.md"
+Documentation = "https://github.com/gianlucamazza/mangouse/blob/main/docs/README.md"
 
 [build-system]
 requires = ["hatchling"]
@@ -35,16 +39,25 @@ build-backend = "hatchling.build"
 path = "src/mangouse/__init__.py"
 
 [dependency-groups]
-dev = ["ruff", "pytest"]
+dev = ["ruff", "pytest", "ty"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = "-q"
-pythonpath = ["src"]
+addopts = "-q --strict-markers --strict-config"
 
 [tool.ruff]
 line-length = 100
 src = ["src"]
+target-version = "py313"
 
 [tool.ruff.lint]
-select = ["E", "F", "I", "UP", "B", "SIM"]
+select = ["E", "F", "I", "UP", "B", "SIM", "RUF", "PT"]
+# Existing tests assert MangouseError.code in except; OSError is the
+# protocol-layer contract. Do not churn them into pytest.raises().
+ignore = ["PT011", "PT017", "PT018"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["mangouse"]
+
+[tool.ty.src]
+include = ["src"]

@@ -31,6 +31,8 @@ Agent-contract and doctor honesty. No new mutate commands.
   leaves `ready` / `observe_ready` to Wayland plus the backend.
 - Each `shot` / `zoom` unlinks `shot-*` files older than 30 minutes in the
   runtime dir.
+- Dev loop matches CI: `uv sync --locked`, `ty check src`, ruff format
+  check. `py.typed` ships so importers see the types.
 
 ### Fixed
 

@@ -12,6 +12,8 @@ uv sync --group dev
 
 uv run pytest
 uv run ruff check src tests
+uv run ruff format --check src tests
+uv run ty check src
 uv run mangouse --json doctor
 ```
 
@@ -62,7 +64,7 @@ Do not add mutate tools to the MCP extra. MCP is observe-only, by design.
 
 - Code, comments, and docs in English.
 - Small modules, no framework. `ruff` with the repo's settings is the
-  formatter and the linter; line length is 100.
+  formatter and the linter; line length is 100. `ty` type-checks `src/`.
 - Type hints on public functions. `from __future__ import annotations` at the
   top of every module.
 - Errors are `MangouseError` subclasses with a stable `code`, because agents
@@ -75,7 +77,8 @@ Commit subjects follow [Conventional Commits](https://www.conventionalcommits.or
 `feat:`, `fix:`, `docs:`, `test:`, `refactor:`, `chore:`. Write the body in
 prose explaining _why_, not a bullet list of what the diff already shows.
 
-Before opening a PR: `uv run pytest` and `uv run ruff check src tests` both
+Before opening a PR: `uv run pytest`, `uv run ruff check src tests`,
+`uv run ruff format --check src tests`, and `uv run ty check src` all
 clean, and a `CHANGELOG.md` entry under a new heading if the change is
 user-visible.
 

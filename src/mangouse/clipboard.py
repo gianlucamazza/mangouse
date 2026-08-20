@@ -8,6 +8,7 @@ from __future__ import annotations
 import os
 import shutil
 import subprocess
+from collections.abc import Callable
 
 from mangouse.config import load_config
 from mangouse.errors import Denied, MissingDep
@@ -23,7 +24,11 @@ def clipboard_allowed(*, flag: bool = False) -> bool:
     return bool(load_config().allow_clipboard)
 
 
-def read_clipboard(*, allow: bool = False, runner=None) -> dict[str, object]:
+def read_clipboard(
+    *,
+    allow: bool = False,
+    runner: Callable[[list[str]], bytes | str] | None = None,
+) -> dict[str, object]:
     if not clipboard_allowed(flag=allow):
         raise Denied("clipboard disabled (set allow_clipboard or --allow-clipboard)")
     exe = shutil.which("wl-paste")

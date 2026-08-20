@@ -4,12 +4,12 @@ from __future__ import annotations
 
 import os
 
-from mangouse.backend import Backend
+from mangouse.backend import Backend, BackendType, Runner
 from mangouse.backends.mango import MangoBackend
 from mangouse.config import load_config
 from mangouse.errors import NoSession
 
-REGISTRY: dict[str, type] = {
+REGISTRY: dict[str, BackendType] = {
     "mango": MangoBackend,
 }
 
@@ -17,7 +17,7 @@ REGISTRY: dict[str, type] = {
 def resolve_backend(
     name: str | None = None,
     *,
-    runner=None,
+    runner: Runner | None = None,
 ) -> Backend:
     wanted = (name or os.environ.get("MANGOUSE_BACKEND") or load_config().backend or "auto").lower()
     if wanted != "auto":
@@ -33,7 +33,7 @@ def resolve_backend(
     raise NoSession("no supported compositor session (tried: " + ", ".join(REGISTRY) + ")")
 
 
-def _make(cls: type, runner) -> Backend:
+def _make(cls: BackendType, runner: Runner | None) -> Backend:
     if runner is not None:
         return cls(runner=runner)
     return cls()

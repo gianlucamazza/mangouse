@@ -18,14 +18,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
 
       - name: Install uv
         uses: astral-sh/setup-uv@v10.0.1
         with:
           enable-cache: true
 
-      - name: Sync dev dependencies
-        run: uv sync --group dev
+      - name: Sync
+        run: uv sync --locked --all-extras --group dev
 
       - name: Lint
         run: uv run ruff check src tests
@@ -33,7 +35,11 @@ jobs:
       - name: Format check
         run: uv run ruff format --check src tests
 
+      - name: Type check
+        run: uv run ty check src
+
       # The suite runs on recorded fixtures: no compositor, no seat, no
       # browser. If this ever needs a display, the test is wrong.
+      # --all-extras installs mcp so the extra's import is exercised.
       - name: Test
         run: uv run pytest
