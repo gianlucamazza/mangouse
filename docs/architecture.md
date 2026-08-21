@@ -89,8 +89,8 @@ read [CHANGELOG.md](../CHANGELOG.md).
 
 - **An LLM inside the tool.** mangouse returns data; the agent decides.
 - **Browser automation.** The DevTools path exists to make one click land on a
-  webview that ignores evdev. Page, DOM, and accessibility automation belong to
-  a separate long-lived DevTools MCP.
+  webview that ignores evdev. Page, DOM, and accessibility automation are out
+  of scope for this repo.
 - **Shipped application fingerprints.** No deny list, no app catalog, no
   special cases.
 - **A network daemon.** stdio only. The single socket is local, owner-only, and

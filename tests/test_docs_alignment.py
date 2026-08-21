@@ -89,6 +89,37 @@ def test_cli_actions_are_documented() -> None:
         assert f"`{name}`" in headless, f"{name} missing from docs/json-contract.md"
 
 
+def _shipped_text_files() -> list[Path]:
+    skip = {
+        ".venv",
+        ".git",
+        "node_modules",
+        "tests",
+        "__pycache__",
+        ".ruff_cache",
+        ".pytest_cache",
+    }
+    suffixes = {".md", ".py", ".toml", ".json"}
+    out: list[Path] = []
+    for path in ROOT.rglob("*"):
+        if not path.is_file() or path.suffix not in suffixes:
+            continue
+        if any(part in skip for part in path.relative_to(ROOT).parts):
+            continue
+        out.append(path)
+    return out
+
+
+def test_shipped_texts_do_not_name_pagouse() -> None:
+    """This repo's playbook and source do not document a sibling page agent."""
+    hits: list[str] = []
+    for path in _shipped_text_files():
+        for lineno, line in enumerate(path.read_text().splitlines(), 1):
+            if "pagouse" in line.lower():
+                hits.append(f"{path.relative_to(ROOT)}:{lineno}")
+    assert not hits, f"pagouse named in shipped texts: {hits}"
+
+
 def test_skill_and_contract_name_cursor() -> None:
     skill = (ROOT / "skills" / "mangouse" / "SKILL.md").read_text()
     headless = (ROOT / "docs" / "json-contract.md").read_text()
@@ -104,6 +135,7 @@ def test_skill_and_contract_name_cursor() -> None:
     # doctor reports DevTools as a `checks[]` row, not a `devtools` object.
     assert "devtools.state" not in skill
     assert "doctor` `via=hold" not in skill
+    assert "pagouse" not in skill
 
 
 def test_example_config_keys_parse() -> None:

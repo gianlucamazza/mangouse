@@ -115,8 +115,8 @@ Some webviews ignore evdev entirely: `click` returns `ok` with
 the Chrome DevTools Protocol instead, when an endpoint is reachable.
 
 This is a fallback for one operation. mangouse is not a DOM agent and will not
-grow `evaluate`, `fill`, or accessibility trees — for page automation, run a
-real DevTools MCP alongside it.
+grow `evaluate`, `fill`, or accessibility trees. LibreWolf, canvas, and other
+webviews that ignore evdev still use this DevTools click.
 
 **Discovery**, in order: `MANGOUSE_DEVTOOLS_WS`, then `devtools_url` /
 `MANGOUSE_DEVTOOLS_URL`, then a `DevToolsActivePort` file found under

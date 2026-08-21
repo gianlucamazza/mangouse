@@ -14,6 +14,9 @@ Drive `mangouse` with **`--json`**. This file is the playbook only; the
 contract (envelope, fields, error codes) is
 <https://github.com/gianlucamazza/mangouse/blob/main/docs/json-contract.md>.
 
+This skill is the seat only: windows, grim, ydotool, `dispatch`. It is not
+a DOM or accessibility agent and does not name another tool.
+
 ## Before anything
 
 - `command -v mangouse` — if missing, mangouse is not installed. Say so; do
@@ -71,7 +74,7 @@ Clipboard text is `mangouse --json --allow-clipboard clipboard` (or config
 `allow_clipboard`). Denied by default. Never write.
 
 If `click` reports `via: "ydotool"` and `hit: unchanged` on a webview, the
-page is ignoring evdev. Two official protocol paths:
+page is ignoring evdev. Two official protocol paths for **one pixel click**:
 
 1. **Daily profile (Chrome 144+).** `chrome://inspect/#remote-debugging`,
    checkbox on. The first client shows **Allow** (engine chrome — click
@@ -91,9 +94,8 @@ one engine client — Allow once per seat session, then `devtools`
 reports `via=hold`. `mangouse --json devtools --hold` runs it in the foreground;
 `--stop` ends it. The holder drops the engine TCP when the browser closes
 so the profile can be reopened; the unix socket stays and reconnects.
-`MANGOUSE_DEVTOOLS_HOLD=0` disables auto-start. For
-fill, AX, or snapshots, use the official DevTools MCP. This skill is
-not a DOM agent.
+`MANGOUSE_DEVTOOLS_HOLD=0` disables auto-start. This skill is not a DOM
+agent and will not grow `evaluate`, `fill`, or accessibility trees.
 
 `dispatch SPEC` is opaque backend text, not a keystroke. On `readonly`,
 `denied`, or `input_blocked`, stop and report — do not retry around the gate.

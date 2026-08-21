@@ -5,6 +5,13 @@ All notable changes to mangouse are documented here. Version source:
 
 Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [Unreleased]
+
+### Changed
+
+- Playbook docs stay seat-only. They do not name or teach another page
+  agent. DevTools remains one pixel click on webviews that ignore evdev.
+
 ## [0.9.1] — 2026-08-21
 
 ### Fixed
