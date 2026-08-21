@@ -7,6 +7,11 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Added
+
+- `install.sh` links the skill into `~/.config/opencode/skills` when that
+  root already exists.
+
 ### Changed
 
 - Playbook docs stay seat-only. They do not name or teach another page

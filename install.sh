@@ -37,7 +37,11 @@ link_skill() {
 }
 
 # Only attach to skill roots that already exist (do not invent host trees).
-for root in "${HOME}/.claude/skills" "${HOME}/.grok/skills" "${HOME}/.agents/skills"; do
+for root in \
+	"${HOME}/.claude/skills" \
+	"${HOME}/.grok/skills" \
+	"${HOME}/.agents/skills" \
+	"${HOME}/.config/opencode/skills"; do
 	if [[ -d "$root" ]]; then
 		link_skill "${root}/mangouse"
 	fi
