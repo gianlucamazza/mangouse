@@ -182,6 +182,109 @@ def test_holder_socket_is_owner_only(tmp_path: Path, monkeypatch) -> None:
         _stop_holder(thread)
 
 
+def _ws_unmasked(opcode: int, payload: bytes = b"") -> bytes:
+    """Server-to-client WebSocket frame (unmasked). Tests only."""
+    if len(payload) > 125:
+        raise ValueError("test helper is for short frames")
+    return bytes([0x80 | opcode, len(payload)]) + payload
+
+
+def test_reap_engine_idle_keeps_the_socket() -> None:
+    import socket
+
+    holder = Holder()
+    left, right = socket.socketpair()
+    holder._engine = left
+    try:
+        holder.reap_engine()
+        assert holder._engine is left
+    finally:
+        left.close()
+        right.close()
+
+
+def test_reap_engine_closes_on_peer_fin() -> None:
+    import socket
+
+    holder = Holder()
+    left, right = socket.socketpair()
+    holder._engine = left
+    right.shutdown(socket.SHUT_RDWR)
+    right.close()
+    try:
+        holder.reap_engine()
+        assert holder._engine is None
+    finally:
+        with contextlib.suppress(OSError):
+            left.close()
+
+
+def test_reap_engine_closes_on_ws_close_frame() -> None:
+    import socket
+
+    holder = Holder()
+    left, right = socket.socketpair()
+    holder._engine = left
+    try:
+        right.sendall(_ws_unmasked(0x8))
+        holder.reap_engine()
+        assert holder._engine is None
+    finally:
+        with contextlib.suppress(OSError):
+            left.close()
+            right.close()
+
+
+def test_reap_engine_discards_an_event_without_dropping() -> None:
+    import socket
+
+    holder = Holder()
+    left, right = socket.socketpair()
+    holder._engine = left
+    try:
+        right.sendall(_ws_unmasked(0x1, b'{"method":"Target.targetDestroyed"}'))
+        holder.reap_engine()
+        assert holder._engine is left
+    finally:
+        left.close()
+        right.close()
+
+
+def test_holder_drops_engine_tcp_when_peer_closes(tmp_path: Path, monkeypatch) -> None:
+    """Regression: unread engine FIN delayed browser quit (profile lock)."""
+    import socket
+    import threading
+
+    monkeypatch.setenv("XDG_RUNTIME_DIR", str(tmp_path))
+    monkeypatch.setenv("MANGOUSE_DEVTOOLS_HOLD", "0")
+    monkeypatch.setattr("mangouse.devtools.browser_ws_url", lambda: "")
+
+    holder = Holder()
+    left, right = socket.socketpair()
+    holder._engine = left
+    thread = threading.Thread(target=holder.serve, daemon=True)
+    thread.start()
+    try:
+        path = tmp_path / "mangouse" / "devtools.sock"
+        for _ in range(200):
+            if path.exists() and call({"op": "ping"}, timeout=1.0):
+                break
+            time.sleep(0.02)
+        assert call({"op": "ping"}, timeout=1.0), "holder never came up"
+        right.shutdown(socket.SHUT_RDWR)
+        right.close()
+        deadline = time.monotonic() + 2.0
+        while time.monotonic() < deadline and holder._engine is not None:
+            time.sleep(0.02)
+        assert holder._engine is None
+        assert call({"op": "ping"}, timeout=1.0) == {"ok": True, "op": "pong"}
+    finally:
+        _stop_holder(thread)
+        with contextlib.suppress(OSError):
+            left.close()
+            right.close()
+
+
 def test_recv_json_rejects_an_endless_line() -> None:
     """A peer that never sends a newline must not grow the holder's memory."""
     import socket

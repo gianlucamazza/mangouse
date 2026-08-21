@@ -26,7 +26,7 @@ The rest of the docs use these words without stopping to define them:
 | **confine**    | A user policy that limits which windows may be targeted at all, by `app_id` or by group.                                                                                       |
 | **hit**        | Whether the pixels under a click actually changed. Distinguishes "delivered" from "had an effect".                                                                             |
 | **via**        | Which transport carried an operation — `ydotool` for the seat, `devtools` for the browser protocol.                                                                            |
-| **holder**     | A local daemon owning the single browser protocol connection, so the browser's Allow prompt happens once per session rather than once per click.                               |
+| **holder**     | A local daemon owning the single browser protocol connection, so the browser's Allow prompt happens once per session rather than once per click. Drops that TCP when the browser closes so the browser can quit; the unix socket stays and reconnects. |
 | **dispatch**   | An opaque backend action string passed straight through. Not a synthesized keystroke, and not parsed by the core.                                                              |
 
 ## Layers

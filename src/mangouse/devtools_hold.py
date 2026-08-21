@@ -13,6 +13,7 @@ from __future__ import annotations
 import contextlib
 import json
 import os
+import select
 import signal
 import socket
 import subprocess
@@ -183,8 +184,54 @@ class Holder:
     def close_engine(self) -> None:
         if self._engine is not None:
             with contextlib.suppress(OSError):
+                self._engine.shutdown(socket.SHUT_RDWR)
+            with contextlib.suppress(OSError):
                 self._engine.close()
             self._engine = None
+
+    def reap_engine(self) -> None:
+        """Drop a dead engine TCP so the browser can finish quitting.
+
+        The serve loop only talks to the engine on probe/click. A peer FIN
+        left unread keeps the browser process alive after the last window
+        closes (profile lock, cannot relaunch). Idle ticks must consume it.
+        Unsolicited events are discarded; a close frame or a closed socket
+        drops the engine. The unix holder stays up and reconnects later.
+        """
+        sock = self._engine
+        if sock is None:
+            return
+        try:
+            readable = select.select([sock], [], [], 0)[0]
+        except (OSError, ValueError):
+            self.close_engine()
+            return
+        if not readable:
+            return
+        previous = sock.gettimeout()
+        try:
+            sock.settimeout(0.05)
+            from mangouse.devtools import _ws_frame
+
+            while self._engine is sock:
+                try:
+                    still = select.select([sock], [], [], 0)[0]
+                except (OSError, ValueError):
+                    self.close_engine()
+                    return
+                if not still:
+                    return
+                opcode, _fin, _payload = _ws_frame(sock)
+                if opcode == 0x8:
+                    self.close_engine()
+                    return
+        except (OSError, TimeoutError, BlockingIOError):
+            # FIN, truncated frame, or a wedged peer: drop, reconnect later.
+            self.close_engine()
+        finally:
+            if self._engine is not None:
+                with contextlib.suppress(OSError):
+                    self._engine.settimeout(previous)
 
     def connect_engine(self) -> str:
         """Return connected / pending / unset. Reuses an open socket."""
@@ -300,7 +347,7 @@ class Holder:
             os.umask(old_umask)
         os.chmod(path, 0o600)
         server.listen(4)
-        server.settimeout(_ACCEPT_TIMEOUT)
+        server.setblocking(False)
 
         def _stop(_signum: int, _frame: object) -> None:
             self._stop = True
@@ -313,9 +360,22 @@ class Holder:
         self.connect_engine()
         try:
             while not self._stop:
+                watch: list[socket.socket] = [server]
+                if self._engine is not None:
+                    watch.append(self._engine)
+                try:
+                    ready = select.select(watch, [], [], _ACCEPT_TIMEOUT)[0]
+                except (OSError, ValueError):
+                    if self._stop:
+                        break
+                    continue
+                if self._engine is not None and self._engine in ready:
+                    self.reap_engine()
+                if server not in ready:
+                    continue
                 try:
                     client, _ = server.accept()
-                except TimeoutError:
+                except BlockingIOError:
                     continue
                 except OSError:
                     if self._stop:

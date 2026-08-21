@@ -5,6 +5,16 @@ All notable changes to mangouse are documented here. Version source:
 
 Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [0.9.1] — 2026-08-21
+
+### Fixed
+
+- **The DevTools holder left the engine TCP unread after the browser closed.**
+  The serve loop only read that socket on probe/click, so a peer FIN sat in
+  CLOSE-WAIT. The browser process stayed alive, held the profile lock, and a
+  relaunch failed until a later timeout. Idle ticks now drain the engine
+  socket and drop it on close/FIN; the unix holder stays up and reconnects.
+
 ## [0.9.0] — 2026-08-20
 
 Agent-contract and doctor honesty. No new mutate commands.

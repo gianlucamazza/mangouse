@@ -145,7 +145,9 @@ mangouse --json devtools --hold   # run it in the foreground
 mangouse --json devtools --stop   # tear it down: {"stopped": true, "holder": false}
 ```
 
-`MANGOUSE_DEVTOOLS_HOLD=0` disables the auto-start.
+`MANGOUSE_DEVTOOLS_HOLD=0` disables the auto-start. The holder drops the
+engine TCP when the browser closes (otherwise the browser stays alive and
+the profile cannot be reopened); the unix socket stays and reconnects.
 
 **Two ways to expose an endpoint.** They are different Chrome behaviours, not
 alternatives to pick between by version:

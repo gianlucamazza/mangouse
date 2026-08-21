@@ -89,7 +89,9 @@ inspect without HTTP `/json/list`). Clicks then use
 a local **holder** (`$XDG_RUNTIME_DIR/mangouse/devtools.sock`) that keeps
 one engine client — Allow once per seat session, then `devtools`
 reports `via=hold`. `mangouse --json devtools --hold` runs it in the foreground;
-`--stop` ends it. `MANGOUSE_DEVTOOLS_HOLD=0` disables auto-start. For
+`--stop` ends it. The holder drops the engine TCP when the browser closes
+so the profile can be reopened; the unix socket stays and reconnects.
+`MANGOUSE_DEVTOOLS_HOLD=0` disables auto-start. For
 fill, AX, or snapshots, use the official DevTools MCP. This skill is
 not a DOM agent.
 
