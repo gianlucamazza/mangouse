@@ -8,3 +8,9 @@ updates:
     directory: /
     schedule:
       interval: monthly
+    groups:
+      pydantic:
+        applies-to: security-updates
+        patterns:
+          - "pydantic"
+          - "pydantic-core"
