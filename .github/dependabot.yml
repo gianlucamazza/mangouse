@@ -4,6 +4,10 @@ updates:
     directory: /
     schedule:
       interval: monthly
+    groups:
+      version-updates:
+        applies-to: version-updates
+        patterns: ['*']
   - package-ecosystem: uv
     directory: /
     schedule:
@@ -14,3 +18,6 @@ updates:
         patterns:
           - "pydantic"
           - "pydantic-core"
+      version-updates:
+        applies-to: version-updates
+        patterns: ['*']
